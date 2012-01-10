@@ -16,27 +16,25 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// stdafx.h : include file for standard system include files,
-//  or project specific include files that are used frequently, but
-//      are changed infrequently
-//
+// ceusbkwrapper.h: Internal implementation details of 
+// structs used in the library interface for user-side 
+// library for kernel USB wrapper.
 
-#if !defined(AFX_STDAFX_H__87B4A195_1AB8_4EC6_95C7_849065B33234__INCLUDED_)
-#define AFX_STDAFX_H__87B4A195_1AB8_4EC6_95C7_849065B33234__INCLUDED_
+#ifndef CEUSBKWRAPPERI_H
+#define CEUSBKWRAPPERI_H
 
-#if _MSC_VER > 1000
-#pragma once
-#endif // _MSC_VER > 1000
+#include "ceusbkwrapper_common.h"
 
+// This needs to match the value in ceusbkwrapperdrv.reg
+#define DEVICE_HKEY_LOCATION TEXT("Drivers\\USB\\ClientDrivers\\Usb_Kernel_Wrapper")
+// Used to allow the driver to be registered as a Builtin driver, so always loaded
+#define DRIVER_DEFAULT_DEVICE TEXT("UKW0:")
 
-// Insert your headers here
-#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
+// Holds information about a device.
+struct UKW_DEVICE_PRIV {
+	HANDLE hDriver;
+	UKWD_USB_DEVICE dev;
+	UKWD_USB_DEVICE_INFO info;
+};
 
-#include <windows.h>
-#include <devload.h>
-#include <usbdi.h>
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Visual C++ will insert additional declarations immediately before the previous line.
-
-#endif // !defined(AFX_STDAFX_H__87B4A195_1AB8_4EC6_95C7_849065B33234__INCLUDED_)
+#endif // CEUSBKWRAPPERI_H

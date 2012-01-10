@@ -16,27 +16,38 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// stdafx.h : include file for standard system include files,
-//  or project specific include files that are used frequently, but
-//      are changed infrequently
 //
 
-#if !defined(AFX_STDAFX_H__87B4A195_1AB8_4EC6_95C7_849065B33234__INCLUDED_)
-#define AFX_STDAFX_H__87B4A195_1AB8_4EC6_95C7_849065B33234__INCLUDED_
+#include "StdAfx.h"
+#include "EndianUtils.h"
+#include "winsock2.h"
 
-#if _MSC_VER > 1000
-#pragma once
-#endif // _MSC_VER > 1000
+static BOOL gLittleEndianCpu;
 
+// FIXME: All this needs checking (does htons(), htonl(), etc, do what we want on big endian systems?)
 
-// Insert your headers here
-#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
+void EndianUtils::DetectEndian()
+{
+	UINT16 val = 0x1234;
+	gLittleEndianCpu = (htonl(val) != val);
+}
 
-#include <windows.h>
-#include <devload.h>
-#include <usbdi.h>
+INT16 EndianUtils::HostToBus(INT16 aValue)
+{
+	return gLittleEndianCpu ? aValue : htons(aValue);
+}
 
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Visual C++ will insert additional declarations immediately before the previous line.
+INT32 EndianUtils::HostToBus(INT32 aValue)
+{
+	return gLittleEndianCpu ? aValue : htonl(aValue);
+}
 
-#endif // !defined(AFX_STDAFX_H__87B4A195_1AB8_4EC6_95C7_849065B33234__INCLUDED_)
+UINT16 EndianUtils::HostToBus(UINT16 aValue)
+{
+	return gLittleEndianCpu ? aValue : htons(aValue);
+}
+
+UINT32 EndianUtils::HostToBus(UINT32 aValue)
+{
+	return gLittleEndianCpu ? aValue : htonl(aValue);
+}

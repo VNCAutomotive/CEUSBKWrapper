@@ -1,0 +1,26 @@
+LIBRARY "ceusbkwrapper"
+
+EXPORTS
+	UkwOpenDriver
+	UkwGetDeviceList
+	UkwReleaseDeviceList
+	UkwGetDeviceAddress
+	UkwGetConfig
+	UkwSetConfig
+	UkwGetDeviceDescriptor
+	UkwGetConfigDescriptor
+	UkwCloseDriver
+	UkwCancelTransfer
+	UkwIssueControlTransfer
+	UkwClaimInterface
+	UkwReleaseInterface
+	UkwSetInterfaceAlternateSetting
+	UkwClearHalt
+	UkwResetDevice
+	UkwReenumerateDevice
+	UkwKernelDriverActive
+	UkwAttachKernelDriver
+	UkwDetachKernelDriver
+	UkwIssueBulkTransfer
+	UkwDriverGUID
+	UkwIsPipeHalted

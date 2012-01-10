@@ -1,0 +1,18 @@
+LIBRARY "ceusbkwrapperdrv"
+
+EXPORTS
+	Init
+	Deinit
+	Open
+	Close
+	Read
+	Write
+	Seek
+	IOControl
+	PowerUp
+	PowerDown
+	PreClose
+	PreDeinit
+	USBInstallDriver
+	USBDeviceAttach
+	USBUnInstallDriver

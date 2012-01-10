@@ -16,27 +16,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// stdafx.h : include file for standard system include files,
-//  or project specific include files that are used frequently, but
-//      are changed infrequently
-//
+// EndianUtils.h : Provides some endian conversion utilities
 
-#if !defined(AFX_STDAFX_H__87B4A195_1AB8_4EC6_95C7_849065B33234__INCLUDED_)
-#define AFX_STDAFX_H__87B4A195_1AB8_4EC6_95C7_849065B33234__INCLUDED_
+#ifndef ENDIANUTILS_H
+#define ENDIANUTILS_H
 
-#if _MSC_VER > 1000
-#pragma once
-#endif // _MSC_VER > 1000
+namespace EndianUtils {
+	// Should only be called once by the DllAttach
+	void DetectEndian();
 
+	// Conversion functions
+	INT16 HostToBus(INT16 aValue);
+	INT32 HostToBus(INT32 aValue);
+	UINT16 HostToBus(UINT16 aValue);
+	UINT32 HostToBus(UINT32 aValue);
+};
 
-// Insert your headers here
-#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
-
-#include <windows.h>
-#include <devload.h>
-#include <usbdi.h>
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Visual C++ will insert additional declarations immediately before the previous line.
-
-#endif // !defined(AFX_STDAFX_H__87B4A195_1AB8_4EC6_95C7_849065B33234__INCLUDED_)
+#endif //ENDIANUTILS_H

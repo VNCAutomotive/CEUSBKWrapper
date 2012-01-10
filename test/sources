@@ -1,0 +1,42 @@
+_COMMONPUBROOT=$(_PROJECTROOT)\cesysgen
+__PROJROOT=$(_PROJECTROOT)
+RELEASETYPE=LOCAL
+_ISVINCPATH=$(_WINCEROOT)\public\common\sdk\inc;
+_OEMINCPATH=$(_WINCEROOT)\public\common\oak\inc;$(_WINCEROOT)\public\common\sdk\inc;
+TARGETNAME=ceusbkwrappertest
+FILE_VIEW_ROOT_FOLDER= \
+    StdAfx.cpp \
+    prelink.bat \
+    postlink.bat \
+
+FILE_VIEW_RESOURCE_FOLDER= \
+
+FILE_VIEW_INCLUDES_FOLDER= \
+    StdAfx.h \
+	
+INCLUDES= \
+	..\lib
+	
+SOURCES= \
+    ceusbkwrappertest.cpp \
+
+TARGETTYPE=PROGRAM
+PRECOMPILED_CXX=1
+PRECOMPILED_PCH=StdAfx.pch
+EXEENTRY=mainWCRTStartup
+PRECOMPILED_INCLUDE=StdAfx.h
+TARGETLIBS= \
+    $(_PROJECTROOT)\cesysgen\sdk\lib\$(_CPUINDPATH)\coredll.lib \
+	..\lib\obj\$(_CPUINDPATH)\ceusbkwrapper.lib
+
+PRECOMPILED_OBJ=StdAfx.obj
+POSTLINK_PASS_CMD=postlink.bat
+PRELINK_PASS_CMD=prelink.bat
+FILE_VIEW_PARAMETER_FOLDER= \
+    ceusbkwrappertest.bib \
+    ceusbkwrappertest.reg \
+    ceusbkwrappertest.dat \
+    ceusbkwrappertest.db \
+    ProjSysgen.bat \
+
+EXCEPTION_CPP=ENABLE_WITH_SEH

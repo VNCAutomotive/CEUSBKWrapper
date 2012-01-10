@@ -16,27 +16,47 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// stdafx.h : include file for standard system include files,
-//  or project specific include files that are used frequently, but
-//      are changed infrequently
-//
+// DevicePtr.cpp : RAII wrapper for UsbDevice.
 
-#if !defined(AFX_STDAFX_H__87B4A195_1AB8_4EC6_95C7_849065B33234__INCLUDED_)
-#define AFX_STDAFX_H__87B4A195_1AB8_4EC6_95C7_849065B33234__INCLUDED_
+#include "StdAfx.h"	
+#include "DevicePtr.h"
+#include "UsbDeviceList.h"
 
-#if _MSC_VER > 1000
-#pragma once
-#endif // _MSC_VER > 1000
+DevicePtr::DevicePtr(UsbDeviceList* lpList, UKWD_USB_DEVICE DeviceIdentifier)
+: mList(lpList),
+  mDeviceIdentifier(DeviceIdentifier),
+  mDevice(NULL)
+{
+	mDevice = mList->GetDevice(mDeviceIdentifier);
+}
 
+DevicePtr::DevicePtr(const DevicePtr& device)
+: mList(device.mList),
+  mDeviceIdentifier(device.mDeviceIdentifier),
+  mDevice(NULL)
+{
+	mDevice = mList->GetDevice(device.mDevice);
+}
 
-// Insert your headers here
-#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
+BOOL DevicePtr::Valid() const
+{
+	return mDevice != NULL;
+}
 
-#include <windows.h>
-#include <devload.h>
-#include <usbdi.h>
+UsbDevice* DevicePtr::operator->()
+{
+	return mDevice;
+}
 
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Visual C++ will insert additional declarations immediately before the previous line.
+UsbDevice* DevicePtr::Get()
+{
+	return mDevice;
+}
 
-#endif // !defined(AFX_STDAFX_H__87B4A195_1AB8_4EC6_95C7_849065B33234__INCLUDED_)
+DevicePtr::~DevicePtr()
+{
+	if (mDevice) {
+		mList->PutDevice(mDevice);
+		mDevice = NULL;
+	}
+}

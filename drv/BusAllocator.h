@@ -16,27 +16,32 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// stdafx.h : include file for standard system include files,
-//  or project specific include files that are used frequently, but
-//      are changed infrequently
-//
+// BusAllocator.h : Fake bus and address allocator
 
-#if !defined(AFX_STDAFX_H__87B4A195_1AB8_4EC6_95C7_849065B33234__INCLUDED_)
-#define AFX_STDAFX_H__87B4A195_1AB8_4EC6_95C7_849065B33234__INCLUDED_
+#ifndef BUSALLOCATOR_H
+#define BUSALLOCATOR_H
+#include "AddressAllocator.h"
 
-#if _MSC_VER > 1000
-#pragma once
-#endif // _MSC_VER > 1000
+#define MAX_BUSES (UCHAR_MAX + 1)
 
+class BusAllocator {
+public:
+	BusAllocator();
+	~BusAllocator();
 
-// Insert your headers here
-#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
+	BOOL Alloc(
+		unsigned char& Bus,
+		unsigned char& Address,
+		unsigned long& SessionId);
 
-#include <windows.h>
-#include <devload.h>
-#include <usbdi.h>
+	void Free(
+		const unsigned char Bus,
+		const unsigned char Address,
+		const unsigned long SessionId);
 
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Visual C++ will insert additional declarations immediately before the previous line.
+private:
+	AddressAllocator mAllocators[MAX_BUSES];
+	unsigned long mNextSessionId;
+};
 
-#endif // !defined(AFX_STDAFX_H__87B4A195_1AB8_4EC6_95C7_849065B33234__INCLUDED_)
+#endif // BUSALLOCATOR_H

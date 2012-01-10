@@ -1,0 +1,101 @@
+; These registry entries register the USB wrapper driver's 
+; stream interface. The value of "Prefix" should match what
+; is expected by the user-space ceusbkwrapper.dll, as defined
+; in the ceusbkwrapperi.h file.
+;
+; The driver uses DEVFLAGS_NAKEDENTRIES so it is not necessary
+; to edit the driver code to change the "Prefix" used if
+; the one specified here conflicts with another driver on the
+; system.
+;
+; Interface filters may be defined to prevent the driver from
+; accepting control of particular USB interfaces. For an interface
+; matching a filter, this driver attempts to find and load an 
+; alternative interface driver. If successful, this driver 
+; relinquishes control of the interface. Otherwise, this driver 
+; attempts to load an alternative driver for the entire device. If 
+; successful, this driver relinquishes control of *all* interfaces. 
+; However, this driver still reserves the right to send arbitrary 
+; control requests to the device on the default control pipe.
+;
+; Each interface filter is defined as a string whose name is prefixed 
+; with "InterfaceFilter_". The string specifies a filter in the
+; following format:
+;
+; "bInterfaceClass:bInterfaceSubClass:bInterfaceProtocol[:idVendor[:idProduct]]"
+;
+; Each element of the filter may be a base 10 value matching the
+; corresponding attribute of the USB interface or '*' (always matching
+; the attribute). For example, the interface filter "8:*:*" matches 
+; USB interfaces with a bInterfaceClass of 8 (mass storage), regardless 
+; of the values of bInterfaceSubClass and bInterfaceProtocol.
+;
+; Optionally, the idVendor and idProduct fields from the device descriptor
+; may also be included in an interface filter. For example, the interface
+; filter "8:*:*:1057" matches mass storage interfaces on Nokia devices only
+; (idVendor=1057=0x0421).
+;
+; Any field in the interface filter can be inverted (i.e. changed from MATCH to
+; DOES NOT MATCH) by prepending the '!' character. For example, the interface
+; filter "8:*:*:!1057" matches mass storage interfaces on all devices except
+; Nokia devices.
+;
+[HKEY_LOCAL_MACHINE\Drivers\USB\ClientDrivers\Usb_Kernel_Wrapper]
+  "Prefix" = "UKW"
+  "Dll"    = "ceusbkwrapperdrv.dll"
+  "Flags"  = dword:8 ; DEVFLAGS_NAKEDENTRIES
+  "InterfaceFilter_RNDIS_STANDARD"      = "2:2:255:!1057"
+  "InterfaceFilter_RNDIS_MOBILE"        = "224:1:3"
+  "InterfaceFilter_RNDIS_ACTIVESYNC"    = "239:1:1"
+  "InterfaceFilter_CDC_NCM"             = "2:13:*"
+  "InterfaceFilter_MASS_STORAGE"        = "8:*:*"
+  
+; The remaining registry keys in this file are all for
+; telling USBD.DLL which devices this wrapper should be used
+; for. It is necessary to have them specified explicitly here 
+; due to how the driver loading model on Windows CE works.
+;
+; For further information on what these values mean see:
+; http://msdn.microsoft.com/en-us/library/ms894793.aspx
+  
+; Match all Google devices, such as the Nexus One and Nexus S
+; VID = 0x18D1
+; This also includes devices implementing the Android Accessory
+; Protocol in Accessory mode (which have PID = 0x2D00 or 0x2D01)
+[HKEY_LOCAL_MACHINE\Drivers\USB\LoadClients\6353\Default\Default\Usb_Kernel_Wrapper]
+  "Dll"    = "ceusbkwrapperdrv.dll"
+
+; Match all RIM devices, such as Blackberry mobile phones
+; VID = 0x0fca
+[HKEY_LOCAL_MACHINE\Drivers\USB\LoadClients\4042\Default\Default\Usb_Kernel_Wrapper]
+  "Dll"    = "ceusbkwrapperdrv.dll"
+
+; Match all Nokia devices, such as Nokia mobile phones
+; VID = 0x0421
+[HKEY_LOCAL_MACHINE\Drivers\USB\LoadClients\1057\Default\Default\Usb_Kernel_Wrapper]
+  "Dll"    = "ceusbkwrapperdrv.dll"
+
+; Match all Samsung devices
+; VID = 0x04e8
+[HKEY_LOCAL_MACHINE\Drivers\USB\LoadClients\1256\Default\Default\Usb_Kernel_Wrapper]
+  "Dll"    = "ceusbkwrapperdrv.dll"
+
+; Match all LG devices
+; VID = 0x1004
+[HKEY_LOCAL_MACHINE\Drivers\USB\LoadClients\4100\Default\Default\Usb_Kernel_Wrapper]
+  "Dll"    = "ceusbkwrapperdrv.dll"
+
+; Match all SonyEricsson devices
+; VID = 0x0fce
+[HKEY_LOCAL_MACHINE\Drivers\USB\LoadClients\4046\Default\Default\Usb_Kernel_Wrapper]
+  "Dll"    = "ceusbkwrapperdrv.dll"	
+
+; Match all Apple devices
+; VID = 0x05ac
+[HKEY_LOCAL_MACHINE\Drivers\USB\LoadClients\1452\Default\Default\Usb_Kernel_Wrapper]
+  "Dll"    = "ceusbkwrapperdrv.dll"
+
+; Match all HTC devices
+; VID = 0x0bb4
+[HKEY_LOCAL_MACHINE\Drivers\USB\LoadClients\2996\Default\Default\Usb_Kernel_Wrapper]
+  "Dll"    = "ceusbkwrapperdrv.dll"

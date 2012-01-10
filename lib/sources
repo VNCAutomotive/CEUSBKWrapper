@@ -5,7 +5,6 @@ _ISVINCPATH=$(_WINCEROOT)\public\common\sdk\inc;
 _OEMINCPATH=$(_WINCEROOT)\public\common\oak\inc;$(_WINCEROOT)\public\common\sdk\inc;
 TARGETNAME=ceusbkwrapper
 FILE_VIEW_ROOT_FOLDER= \
-    ReadMe.txt \
     StdAfx.cpp \
     prelink.bat \
     postlink.bat \
@@ -15,6 +14,14 @@ FILE_VIEW_RESOURCE_FOLDER= \
 FILE_VIEW_INCLUDES_FOLDER= \
     StdAfx.h \
     ceusbkwrapper.h \
+    ..\common\ceusbkwrapper_common.h \
+    librarydbg.h \
+    ceusbkwrapperi.h \
+
+INCLUDES= \
+	$(_COMMONDDKROOT)\inc;\
+	$(_COMMONOAKROOT)\inc;\
+	..\common
 
 SOURCES= \
     ceusbkwrapper.cpp \
@@ -38,3 +45,5 @@ FILE_VIEW_PARAMETER_FOLDER= \
     ceusbkwrapper.def \
     ProjSysgen.bat \
 
+EXCEPTION_CPP=ENABLE_WITH_SEH
+DEFFILE=ceusbkwrapper.def

@@ -1,0 +1,13 @@
+drv/Build.dat
+drv/Build.log
+drv/obj
+drv/PlatformBuilderTempProject.*.user
+lib/Build.dat
+lib/Build.log
+lib/obj
+lib/PlatformBuilderTempProject.*.user
+test/Build.dat
+test/Build.log
+test/obj
+test/PlatformBuilderTempProject.*.user
+*~

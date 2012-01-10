@@ -16,27 +16,46 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// stdafx.h : include file for standard system include files,
-//  or project specific include files that are used frequently, but
-//      are changed infrequently
-//
+// TransferPtr.cpp : RAII wrapper for Transfer.
 
-#if !defined(AFX_STDAFX_H__87B4A195_1AB8_4EC6_95C7_849065B33234__INCLUDED_)
-#define AFX_STDAFX_H__87B4A195_1AB8_4EC6_95C7_849065B33234__INCLUDED_
+#include "StdAfx.h"	
+#include "TransferPtr.h"
+#include "OpenContext.h"
+#include "TransferList.h"
 
-#if _MSC_VER > 1000
-#pragma once
-#endif // _MSC_VER > 1000
+TransferPtr::TransferPtr(OpenContext* OpenContext, LPOVERLAPPED lpOverlapped)
+: mList(OpenContext->GetTransferList())
+, mTransfer(NULL)
+{
+	mTransfer = mList->GetTransfer(lpOverlapped);
+}
 
+TransferPtr::TransferPtr(const TransferPtr& device)
+: mList(device.mList)
+, mTransfer(NULL)
+{
+	mTransfer = mList->GetTransfer(device.mTransfer);
+}
 
-// Insert your headers here
-#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
+BOOL TransferPtr::Valid() const
+{
+	return mTransfer != NULL;
+}
 
-#include <windows.h>
-#include <devload.h>
-#include <usbdi.h>
+Transfer* TransferPtr::operator->()
+{
+	return mTransfer;
+}
 
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Visual C++ will insert additional declarations immediately before the previous line.
+Transfer* TransferPtr::Get()
+{
+	return mTransfer;
+}
 
-#endif // !defined(AFX_STDAFX_H__87B4A195_1AB8_4EC6_95C7_849065B33234__INCLUDED_)
+TransferPtr::~TransferPtr()
+{
+	if (mTransfer) {
+		mList->PutTransfer(mTransfer);
+		mTransfer = NULL;
+	}
+}
