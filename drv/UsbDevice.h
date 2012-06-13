@@ -82,6 +82,10 @@ public:
 		USB_TRANSFER hTransfer,
 		LPDWORD lpdwBytesTransferred,
 		LPDWORD lpdwError);
+	BOOL GetTransferStatusNoLock(
+		USB_TRANSFER hTransfer,
+		LPDWORD lpdwBytesTransferred,
+		LPDWORD lpdwError);
 	BOOL CancelTransfer(USB_TRANSFER hTransfer, DWORD dwFlags);
 	BOOL CloseTransfer(USB_TRANSFER hTransfer);
 

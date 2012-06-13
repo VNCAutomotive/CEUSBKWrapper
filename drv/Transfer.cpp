@@ -200,7 +200,7 @@ void Transfer::DoTransferCompleted()
 		return;
 
 	DWORD bytesTransferred, transferError, translatedError;
-	if (!mDevicePtr->GetTransferStatus(mTransfer, &bytesTransferred, &transferError)) {
+	if (!mDevicePtr->GetTransferStatusNoLock(mTransfer, &bytesTransferred, &transferError)) {
 		ERROR_MSG((TEXT("USBKWrapperDrv!Transfer::TransferComplete() used invalid transfer handle\r\n")));
 		transferError = USB_NO_ERROR;
 		translatedError = ERROR_INVALID_HANDLE;

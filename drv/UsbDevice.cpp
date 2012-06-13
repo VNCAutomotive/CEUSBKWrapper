@@ -498,6 +498,16 @@ BOOL UsbDevice::GetTransferStatus(
 	LPDWORD lpdwError)
 {
 	MutexLocker lock(mCloseMutex);
+	return GetTransferStatusNoLock(hTransfer, lpdwBytesTransferred, lpdwError);
+}
+
+BOOL UsbDevice::GetTransferStatusNoLock(
+	USB_TRANSFER hTransfer,
+	LPDWORD lpdwBytesTransferred,
+	LPDWORD lpdwError)
+{
+	// This doesn't hold the lock as it's intended to only be called from a transfer completion callback, during
+	// which the device can't change status.
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
