@@ -474,7 +474,8 @@ BOOL UsbDevice::ClearHalt(DWORD dwInterface, UCHAR Endpoint)
 	if(!mUsbFuncs->lpIsPipeHalted(epPipe, &halted)) {
 		return false;
 	}
-	if(halted && !mUsbFuncs->lpResetPipe(epPipe)) {
+	// Only count failure to reset as an error if halted
+	if(!mUsbFuncs->lpResetPipe(epPipe) && halted) {
 		return false;
 	}
 	// Secondly clear the stall on the device side
