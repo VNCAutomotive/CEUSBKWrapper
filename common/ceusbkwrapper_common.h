@@ -44,6 +44,10 @@ static const GUID ceusbkwrapper_guid = DEVCLASS_CEUSBKWRAPPER_GUID;
 			 (f + FUNCTION_OEM_START_RANGE), \
 			METHOD_BUFFERED, FILE_ANY_ACCESS)
 
+// Does the inverse of USBKWRAPPER_CTL_CODE(f)
+#define USBKWRAPPER_FUNCTION_FROM_CTL(f) \
+	(((f >> 2) & 0xFFF) - FUNCTION_OEM_START_RANGE)
+
 /* Retrieves an array of all currently connected USB devices.
  * The array is a collection of UKWD_USB_DEVICE elements.
  *

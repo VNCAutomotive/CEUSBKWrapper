@@ -224,8 +224,10 @@ BOOL IOControl(
   PDWORD pdwActualOut)
 {
 	ENTRYPOINT_MSG((
-		TEXT("USBKWrapperDrv!IOControl(0x%08x, %d, 0x%08x, %d, 0x%08x, %d, ...)\r\n"),
-		hOpenContext, dwCode, pBufIn, dwLenIn, pBufOut, dwLenOut));
+		TEXT("USBKWrapperDrv!IOControl(0x%08x, 0x%08x (%d), 0x%08x, %d, 0x%08x, %d, ...)\r\n"),
+		hOpenContext, dwCode,
+		USBKWRAPPER_FUNCTION_FROM_CTL(dwCode), // Extract out the function value for ease
+		pBufIn, dwLenIn, pBufOut, dwLenOut));
 	OpenContext* file = reinterpret_cast<OpenContext*>(hOpenContext);
 	BOOL ret = FALSE;
 	switch(dwCode) {
