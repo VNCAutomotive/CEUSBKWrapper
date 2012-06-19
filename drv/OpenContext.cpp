@@ -254,7 +254,7 @@ BOOL OpenContext::StartBulkTransfer(LPUKWD_BULK_TRANSFER_INFO lpTransferInfo)
 		}
 	}
 
-	TRANSFERLIFETIME_MSG((TEXT("USBKWrapperDrv!OpenContext::StartBulkTransfer() on ep %d, flag 0x%08x and size %d\r\n"),
+	TRANSFERLIFETIME_MSG((TEXT("USBKWrapperDrv!OpenContext::StartBulkTransfer() on ep %x, flag 0x%08x and size %d\r\n"),
 		lpTransferInfo->Endpoint, lpTransferInfo->dwFlags, lpTransferInfo->dwDataBufferSize));
 
 	// Construct and start the bulk transfer

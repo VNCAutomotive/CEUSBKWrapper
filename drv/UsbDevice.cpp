@@ -740,14 +740,13 @@ BOOL UsbDevice::CheckKernelDriverActiveForInterface(UCHAR ifnum)
 {
 	// Kernel driver is active for interface if:
 	// (a) We're not controlling the whole device and we're not controlling that interface, or
-	// (b) If the interface has been otherwise claimed, or cannot be claimed (indicates we've already
-	// attached a driver).
+	// (b) If the interface cannot be claimed (indicates we've already attached a driver).
 	if (mUsbInterface && mUsbInterface->Descriptor.bInterfaceNumber != ifnum) {
 		return TRUE;
 	}
 	for (DWORD i = 0; i < mInterfaceClaimersCount; i++) {
 		if (mInterfaceClaimers[i].InterfaceValue() == ifnum &&
-			(!mInterfaceClaimers[i].IsClaimable() || mInterfaceClaimers[i].AnyClaimed())) {
+			!mInterfaceClaimers[i].IsClaimable()) {
 			return TRUE;
 		}
 	}
@@ -758,13 +757,12 @@ BOOL UsbDevice::CheckKernelDriverActiveForDevice()
 {
 	// Kernel driver is active for device if:
 	// (a) We're not controlling the whole device
-	// (b) Any interface has been otherwise claimed, or cannot be claimed (indicates we've already
-	// attached a driver).
+	// (b) Any interface cannot be claimed (indicates we've already attached a driver).
 	if (mUsbInterface) {
 		return TRUE;
 	}
 	for (DWORD i = 0; i < mInterfaceClaimersCount; i++) {
-		if (!mInterfaceClaimers[i].IsClaimable() || mInterfaceClaimers[i].AnyClaimed()) {
+		if (!mInterfaceClaimers[i].IsClaimable()) {
 			return TRUE;
 		}
 	}
