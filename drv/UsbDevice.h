@@ -23,6 +23,8 @@
 
 #include "ceusbkwrapper_common.h"
 
+#include "ReadWriteMutex.h"
+
 template <typename T> class UserBuffer;
 class InterfaceClaimers;
 class Transfer;
@@ -127,7 +129,7 @@ private:
 	void AdvertiseDevice(BOOL isAttached);
 private:
 	DWORD mRefCount;
-	mutable HANDLE mCloseMutex; // Mutable to allow locking inside const methods
+	mutable ReadWriteMutex mCloseMutex; // Mutable to allow locking inside const methods
 	USB_HANDLE mDevice;
 	LPCUSB_FUNCS mUsbFuncs;
 	LPCUSB_INTERFACE mUsbInterface;

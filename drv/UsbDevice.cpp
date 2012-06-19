@@ -69,7 +69,6 @@ UsbDevice::UsbDevice(
 		unsigned char Address,
 		unsigned long SessionId)
 : mRefCount(1),
-  mCloseMutex(NULL),
   mDevice(NULL),
   mUsbFuncs(NULL),
   mUsbInterface(NULL),
@@ -87,9 +86,6 @@ UsbDevice::UsbDevice(
 
 UsbDevice::~UsbDevice()
 {
-	if (mCloseMutex)
-		CloseHandle(mCloseMutex);
-
 	if (mInterfaceClaimers)
 		delete [] mInterfaceClaimers;
 
@@ -102,7 +98,7 @@ UsbDevice::~UsbDevice()
 
 void UsbDevice::Close()
 {
-	MutexLocker lock(mCloseMutex);
+	WriteLocker lock(mCloseMutex);
 	if (mRegistered && mUsbFuncs &&	mDevice) {
 		DEVLIFETIME_MSG((
 			TEXT("USBKWrapperDrv!UsbDevice::Close() mDevice: 0x%08x mBus: %d mAddress: %d\r\n"),
@@ -137,8 +133,7 @@ BOOL UsbDevice::Init(USB_HANDLE hDevice,
 		return FALSE;
 	}
 
-	mCloseMutex = CreateMutex(NULL, FALSE, NULL);
-	if (mCloseMutex == NULL) {
+	if (!mCloseMutex.Init()) {
 		ERROR_MSG((TEXT("USBKWrapperDrv!UsbDevice::Init() - failed to create mutex\r\n")));
 		return FALSE;
 	}
@@ -157,7 +152,7 @@ BOOL UsbDevice::Init(USB_HANDLE hDevice,
 		return FALSE;
 	}
 
-	MutexLocker lock(mCloseMutex);
+	WriteLocker lock(mCloseMutex);
 	if (Closed()) {
 		// Check that the device hasn't been disconnected in the meantime.
 		ERROR_MSG((
@@ -217,7 +212,7 @@ DWORD UsbDevice::DecRef()
 
 void UsbDevice::ReleaseAllInterfaces(LPVOID Context)
 {
-	MutexLocker lock(mCloseMutex);
+	WriteLocker lock(mCloseMutex);
 	for (DWORD i = 0; i < mInterfaceClaimersCount; ++i) {
 		mInterfaceClaimers[i].ReleaseAll(Context);
 	}
@@ -225,7 +220,7 @@ void UsbDevice::ReleaseAllInterfaces(LPVOID Context)
 
 BOOL UsbDevice::ClaimInterface(DWORD dwInterfaceValue, LPVOID Context)
 {
-	MutexLocker lock(mCloseMutex);
+	WriteLocker lock(mCloseMutex);
 	if (Closed()) {
 		// Don't allow closed devices to be claimed
 		SetLastError(ERROR_INVALID_HANDLE);
@@ -255,7 +250,7 @@ BOOL UsbDevice::ClaimInterface(DWORD dwInterfaceValue, LPVOID Context)
 
 BOOL UsbDevice::ReleaseInterface(DWORD dwInterfaceValue, LPVOID Context)
 {
-	MutexLocker lock(mCloseMutex);
+	WriteLocker lock(mCloseMutex);
 	// Don't immediately give up if the device is closed,
 	// as the release is probably just a well behaved client
 	// releasing interfaces after noticing the device disappeared.
@@ -274,7 +269,7 @@ BOOL UsbDevice::ReleaseInterface(DWORD dwInterfaceValue, LPVOID Context)
 
 BOOL UsbDevice::AnyInterfacesClaimed() const
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	for (DWORD i = 0; i < mInterfaceClaimersCount; ++i) {
 		if (mInterfaceClaimers[i].AnyClaimed())
 			return TRUE;
@@ -284,7 +279,7 @@ BOOL UsbDevice::AnyInterfacesClaimed() const
 
 BOOL UsbDevice::InterfaceClaimed(DWORD dwInterfaceValue, LPVOID Context) const
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	for (DWORD i = 0; i < mInterfaceClaimersCount; ++i) {
 		if (mInterfaceClaimers[i].InterfaceValue() == dwInterfaceValue)
 			return mInterfaceClaimers[i].IsClaimed(Context);
@@ -294,7 +289,7 @@ BOOL UsbDevice::InterfaceClaimed(DWORD dwInterfaceValue, LPVOID Context) const
 
 BOOL UsbDevice::FindInterface(UCHAR Endpoint, DWORD& dwInterfaceValue)
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	for (DWORD i = 0; i < mInterfaceClaimersCount; ++i) {
 		if (mInterfaceClaimers[i].HasEndpoint(Endpoint)) {
 			dwInterfaceValue = mInterfaceClaimers[i].InterfaceValue();
@@ -322,7 +317,7 @@ unsigned long UsbDevice::SessionId() const
 
 BOOL UsbDevice::GetDeviceDescriptor(LPUSB_DEVICE_DESCRIPTOR lpDeviceDescriptor)
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
@@ -334,7 +329,7 @@ BOOL UsbDevice::GetDeviceDescriptor(LPUSB_DEVICE_DESCRIPTOR lpDeviceDescriptor)
 
 BOOL UsbDevice::GetActiveConfigDescriptor(UserBuffer<LPVOID>& buffer, LPDWORD lpSize)
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
@@ -359,7 +354,7 @@ BOOL UsbDevice::GetActiveConfigDescriptor(UserBuffer<LPVOID>& buffer, LPDWORD lp
 
 BOOL UsbDevice::GetConfigDescriptor(DWORD dwConfigurationIndex, UserBuffer<LPVOID>& buffer, LPDWORD lpSize)
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
@@ -374,7 +369,7 @@ BOOL UsbDevice::GetConfigDescriptor(DWORD dwConfigurationIndex, UserBuffer<LPVOI
 
 BOOL UsbDevice::GetActiveConfigValue(PUCHAR pConfigurationValue)
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
@@ -387,7 +382,7 @@ BOOL UsbDevice::GetActiveConfigValue(PUCHAR pConfigurationValue)
 
 BOOL UsbDevice::SetActiveConfigValue(UCHAR pConfigurationValue)
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
@@ -410,7 +405,7 @@ BOOL UsbDevice::SetActiveConfigValue(UCHAR pConfigurationValue)
 
 BOOL UsbDevice::SetAltSetting(DWORD dwInterface, DWORD dwAlternateSetting)
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
@@ -437,7 +432,7 @@ BOOL UsbDevice::SetAltSetting(DWORD dwInterface, DWORD dwAlternateSetting)
 
 BOOL UsbDevice::IsEndpointHalted(DWORD dwInterface, UCHAR Endpoint, BOOL& halted)
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
@@ -458,7 +453,7 @@ BOOL UsbDevice::IsEndpointHalted(DWORD dwInterface, UCHAR Endpoint, BOOL& halted
 
 BOOL UsbDevice::ClearHalt(DWORD dwInterface, UCHAR Endpoint)
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
@@ -498,7 +493,7 @@ BOOL UsbDevice::GetTransferStatus(
 	LPDWORD lpdwBytesTransferred,
 	LPDWORD lpdwError)
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	return GetTransferStatusNoLock(hTransfer, lpdwBytesTransferred, lpdwError);
 }
 
@@ -518,7 +513,7 @@ BOOL UsbDevice::GetTransferStatusNoLock(
 
 BOOL UsbDevice::CancelTransfer(USB_TRANSFER hTransfer, DWORD dwFlags)
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
@@ -528,7 +523,7 @@ BOOL UsbDevice::CancelTransfer(USB_TRANSFER hTransfer, DWORD dwFlags)
 
 BOOL UsbDevice::CloseTransfer(USB_TRANSFER hTransfer)
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
@@ -548,7 +543,7 @@ USB_TRANSFER UsbDevice::IssueVendorTransfer(
 	LPCUSB_DEVICE_REQUEST lpControlHeader,
 	LPVOID lpvBuffer)
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return NULL;
@@ -568,7 +563,7 @@ USB_TRANSFER UsbDevice::IssueBulkTransfer(
 	DWORD dwDataBufferSize,
 	LPVOID lpvBuffer)
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return NULL;
@@ -702,7 +697,7 @@ BOOL UsbDevice::AllocateInterfaceClaimers()
 
 BOOL UsbDevice::Reset()
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
@@ -721,7 +716,7 @@ BOOL UsbDevice::Reset()
 
 BOOL UsbDevice::Reenumerate()
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
@@ -829,7 +824,7 @@ void UsbDevice::ClosePipes(InterfaceClaimers& Iface)
 
 BOOL UsbDevice::IsKernelDriverActiveForInterface(DWORD dwInterface, PBOOL active)
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
@@ -855,7 +850,7 @@ BOOL UsbDevice::IsKernelDriverActiveForInterface(DWORD dwInterface, PBOOL active
 
 BOOL UsbDevice::AttachKernelDriverForInterface(DWORD dwInterface)
 {
-	MutexLocker lock(mCloseMutex);
+	WriteLocker lock(mCloseMutex);
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
@@ -894,7 +889,7 @@ BOOL UsbDevice::AttachKernelDriverForInterface(DWORD dwInterface)
 
 BOOL UsbDevice::DetachKernelDriverForInterface(DWORD dwInterface)
 {
-	MutexLocker lock(mCloseMutex);
+	ReadLocker lock(mCloseMutex);
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
@@ -907,7 +902,7 @@ BOOL UsbDevice::DetachKernelDriverForInterface(DWORD dwInterface)
 
 BOOL UsbDevice::AttachKernelDriverForDevice()
 {
-	MutexLocker lock(mCloseMutex);
+	WriteLocker lock(mCloseMutex);
 	if (Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;

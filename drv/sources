@@ -33,6 +33,7 @@ FILE_VIEW_INCLUDES_FOLDER= \
     InterfaceClaimers.h \
     ptrset.h \
     BulkTransfer.h \
+    ReadWriteMutex.h \
 
 INCLUDES= \
 	$(_COMMONDDKROOT)\inc;\
@@ -57,6 +58,7 @@ SOURCES= \
     EndianUtils.cpp \
     InterfaceClaimers.cpp \
     BulkTransfer.cpp \
+    ReadWriteMutex.cpp \
 
 TARGETTYPE=DYNLINK
 PRECOMPILED_CXX=1
