@@ -62,7 +62,7 @@ private:
 	TransferList* mTransferList;
 	DeviceContext* mDevice;
 	HANDLE mMutex;
-	PtrSet<UsbDevice> mOpenDevices;
+	PtrArray<UsbDevice> mOpenDevices;
 };
 
 #endif // OPENCONTEXT_H

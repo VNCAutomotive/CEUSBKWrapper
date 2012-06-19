@@ -306,7 +306,7 @@ BOOL UsbDeviceList::AttachDevice(
 			return FALSE;
 		}
 	} else {
-		for (PtrSet<UsbDevice>::iterator it = mDevices.begin(); it != mDevices.end(); ++it) {
+		for (PtrArray<UsbDevice>::iterator it = mDevices.begin(); it != mDevices.end(); ++it) {
 			if ((*it)->IsSameDevice(hDevice)) {
 				WARN_MSG((TEXT("USBKWrapperDrv: Already attached to device, not attaching again\r\n")));
 				(*fAcceptControl) = FALSE;
@@ -380,7 +380,7 @@ BOOL UsbDeviceList::AttachDevice(
 UsbDevice* UsbDeviceList::GetDevice(UKWD_USB_DEVICE identifier)
 {
 	MutexLocker lock(mMutex);
-	PtrSet<UsbDevice>::iterator it
+	PtrArray<UsbDevice>::iterator it
 		= mDevices.find(static_cast<UsbDevice*>(identifier));
 	if (it == mDevices.end()) {
 	    WARN_MSG((TEXT("USBKWrapperDrv!UsbDeviceList::GetDevice")
@@ -420,7 +420,7 @@ DWORD UsbDeviceList::GetAvailableDevices(UsbDevice** lpDevices, DWORD Size)
 {
 	MutexLocker lock(mMutex);
 	DWORD count = 0;
-	PtrSet<UsbDevice>::iterator it = mDevices.begin();
+	PtrArray<UsbDevice>::iterator it = mDevices.begin();
 	while(it != mDevices.end() && Size > 0) {
 		if (!(*it)->Closed()) {
 			lpDevices[count] = *it;
@@ -460,7 +460,7 @@ UsbDeviceList::~UsbDeviceList()
 
 	DestroyInterfaceFilters();
 
-	PtrSet<UsbDevice>::const_iterator iter =
+	PtrArray<UsbDevice>::const_iterator iter =
 		mDevices.begin();
 	while (iter != mDevices.end()) {
 		delete *iter;

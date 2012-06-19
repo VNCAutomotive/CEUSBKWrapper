@@ -35,7 +35,7 @@ public:
 	Transfer* GetTransfer(LPOVERLAPPED lpOverlapped);
 private:
 	HANDLE mMutex;
-	PtrSet<Transfer> mTransfers;
+	PtrArray<Transfer> mTransfers;
 };
 
 #endif // TRANSFER_LIST_H

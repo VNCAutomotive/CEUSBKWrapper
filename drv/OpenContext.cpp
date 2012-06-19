@@ -49,7 +49,7 @@ OpenContext::~OpenContext()
 
 	// Release any leaked devices
 	DWORD count = 0;
-	PtrSet<UsbDevice>::iterator it = mOpenDevices.begin();
+	PtrArray<UsbDevice>::iterator it = mOpenDevices.begin();
 	while(it != mOpenDevices.end()) {
 		(*it)->ReleaseAllInterfaces(this);
 		mDevice->GetDeviceList()->PutDevice(*it);
@@ -88,7 +88,7 @@ BOOL OpenContext::Validate(DevicePtr& device)
 {
 	if (!device.Valid())
 		return FALSE;
-	PtrSet<UsbDevice>::iterator it
+	PtrArray<UsbDevice>::iterator it
 		= mOpenDevices.find(device.Get());
 	if (it == mOpenDevices.end()) {
 	    WARN_MSG((TEXT("USBKWrapperDrv!OpenContext::Validate")

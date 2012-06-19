@@ -16,31 +16,31 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// ptrset.h: Simple templated implementation of a set class
+// ptrarray.h: Simple templated implementation of a sorted array class
 
-#ifndef PTRSET_H
-#define PTRSET_H
+#ifndef PTRARRAY_H
+#define PTRARRAY_H
 
-template <typename T> class PtrSet {
+template <typename T> class PtrArray {
 public:
 	class iterator {
 	public:
-		friend class PtrSet<T>;
+		friend class PtrArray<T>;
 		BOOL operator==(const iterator& rhs);
 		BOOL operator!=(const iterator& rhs);
 		iterator& operator++();
 		iterator operator++(int);
 		T* operator*();
 	private:
-		iterator(PtrSet<T>& set, DWORD idx);
+		iterator(PtrArray<T>& set, DWORD idx);
 	private:
-		PtrSet<T>& mSet;
+		PtrArray<T>& mSet;
 		DWORD mIdx;
 	};
 	friend class iterator;
 	typedef iterator const_iterator;
-	PtrSet();
-	~PtrSet();
+	PtrArray();
+	~PtrArray();
 	BOOL insert(T* value);
 	void erase(T* value);
 	BOOL empty() const;
@@ -59,45 +59,45 @@ private:
 
 
 template <typename T>
-BOOL PtrSet<T>::iterator::operator==(const iterator& rhs)
+BOOL PtrArray<T>::iterator::operator==(const iterator& rhs)
 {
 	return ((&mSet) == (&rhs.mSet)) && mIdx == rhs.mIdx;
 }
 
 template <typename T>
-BOOL PtrSet<T>::iterator::operator!=(const iterator& rhs)
+BOOL PtrArray<T>::iterator::operator!=(const iterator& rhs)
 {
 	return !(*this == rhs);
 }
 
 template <typename T>
-typename PtrSet<T>::iterator& PtrSet<T>::iterator::operator++()
+typename PtrArray<T>::iterator& PtrArray<T>::iterator::operator++()
 {
 	++mIdx;
 	return *this;
 }
 
 template <typename T>
-typename PtrSet<T>::iterator PtrSet<T>::iterator::operator++(int)
+typename PtrArray<T>::iterator PtrArray<T>::iterator::operator++(int)
 {
 	++mIdx;
 	return iterator(mSet, mIdx - 1);
 }
 
 template <typename T>
-typename T* PtrSet<T>::iterator::operator*()
+typename T* PtrArray<T>::iterator::operator*()
 {
 	return mSet.mValues[mIdx];
 }
 
 template <typename T>
-PtrSet<T>::iterator::iterator(PtrSet<T>& set, DWORD idx)
+PtrArray<T>::iterator::iterator(PtrArray<T>& set, DWORD idx)
 : mSet(set), mIdx(idx)
 {
 }
 
 template <typename T>
-PtrSet<T>::PtrSet()
+PtrArray<T>::PtrArray()
 : mValues(NULL)
 , mValuesSize(0)
 , mValuesCount(0)
@@ -105,7 +105,7 @@ PtrSet<T>::PtrSet()
 }
 
 template <typename T>
-PtrSet<T>::~PtrSet()
+PtrArray<T>::~PtrArray()
 {
 	if (mValues) {
 		free(mValues);
@@ -113,7 +113,7 @@ PtrSet<T>::~PtrSet()
 }
 
 template <typename T>
-BOOL PtrSet<T>::insert(T* value)
+BOOL PtrArray<T>::insert(T* value)
 {
 	// Look for the correct place to insert the value
 	DWORD idx = findIdx(value);
@@ -125,7 +125,7 @@ BOOL PtrSet<T>::insert(T* value)
 		mValues[idx] = value;
 		++mValuesCount;
 		return TRUE;
-	} else if (mValues[idx] != value) {
+	} else {
 		// needs to be added at this place
 		if (!resize(mValuesCount + 1)) {
 			return FALSE;
@@ -135,14 +135,11 @@ BOOL PtrSet<T>::insert(T* value)
 		mValues[idx] = value;
 		++mValuesCount;
 		return TRUE;
-	} else {
-		// Already contained inside the array
-		return TRUE;
 	}
 }
 
 template <typename T>
-void PtrSet<T>::erase(T* value)
+void PtrArray<T>::erase(T* value)
 {
 	// Look for the value
 	DWORD idx = findIdx(value);
@@ -157,25 +154,25 @@ void PtrSet<T>::erase(T* value)
 }
 
 template <typename T>
-BOOL PtrSet<T>::empty() const
+BOOL PtrArray<T>::empty() const
 {
 	return mValuesCount == 0;
 }
 
 template <typename T>
-typename PtrSet<T>::iterator PtrSet<T>::begin()
+typename PtrArray<T>::iterator PtrArray<T>::begin()
 {
 	return iterator(*this, 0);
 }
 
 template <typename T>
-typename PtrSet<T>::iterator PtrSet<T>::end()
+typename PtrArray<T>::iterator PtrArray<T>::end()
 {
 	return iterator(*this, mValuesCount);
 }
 
 template <typename T>
-typename PtrSet<T>::iterator PtrSet<T>::find(T* value)
+typename PtrArray<T>::iterator PtrArray<T>::find(T* value)
 {
 	DWORD idx = findIdx(value);
 	if (idx == mValuesCount || mValues[idx] != value)
@@ -184,7 +181,7 @@ typename PtrSet<T>::iterator PtrSet<T>::find(T* value)
 }
 
 template <typename T>
-BOOL PtrSet<T>::resize(DWORD newSize)
+BOOL PtrArray<T>::resize(DWORD newSize)
 {
 	DWORD reallocSize = mValuesSize;
 	if (newSize > mValuesSize) {
@@ -219,7 +216,7 @@ BOOL PtrSet<T>::resize(DWORD newSize)
 }
 
 template <typename T>
-DWORD PtrSet<T>::findIdx(T* value)
+DWORD PtrArray<T>::findIdx(T* value)
 {
 	if (mValuesCount == 0 || mValues == NULL)
 		return 0;
@@ -247,4 +244,4 @@ DWORD PtrSet<T>::findIdx(T* value)
 		return start;
 }
 
-#endif // PTRSET_H
+#endif // PTRARRAY_H

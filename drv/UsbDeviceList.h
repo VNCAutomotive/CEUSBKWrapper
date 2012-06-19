@@ -97,7 +97,7 @@ private:
 	static UsbDeviceList* mSingleton;
 private:
 	HANDLE mMutex;
-	PtrSet<UsbDevice> mDevices;
+	PtrArray<UsbDevice> mDevices;
 	BusAllocator mBusAllocator;
 	INTERFACE_FILTER* mInterfaceFilters;
 	DWORD mNumInterfaceFilters;

@@ -62,7 +62,7 @@ TransferList::~TransferList()
 	}
 
 
-	PtrSet<Transfer>::const_iterator iter =
+	PtrArray<Transfer>::const_iterator iter =
 		mTransfers.begin();
 	while (iter != mTransfers.end()) {
 		delete *iter;
@@ -124,7 +124,7 @@ Transfer* TransferList::GetTransfer(LPOVERLAPPED lpOverlapped)
 	//
 	// For now the simple linear approach is used of looking at
 	// all pending transfers.
-	PtrSet<Transfer>::iterator ret = mTransfers.begin();
+	PtrArray<Transfer>::iterator ret = mTransfers.begin();
 	while (ret != mTransfers.end() &&
 		((*ret == NULL) || ((*ret)->OverlappedUserPtr() != lpOverlapped)))
 		++ret;
