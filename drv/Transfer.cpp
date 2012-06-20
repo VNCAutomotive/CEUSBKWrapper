@@ -211,8 +211,9 @@ void Transfer::DoTransferCompleted()
 	TRANSFERLIFETIME_MSG((
 		TEXT("USBKWrapperDrv!Transfer::TransferComplete() completed (error %d, transferred %d, cancelled %d)\r\n"),
 		translatedError, bytesTransferred, mCancelled));
-	mOverlappedBuffer.Complete(translatedError, bytesTransferred);
+	// Need to flush the IO buffer before completing the overlapped buffer
 	SetBytesTransferred(bytesTransferred);
+	mOverlappedBuffer.Complete(translatedError, bytesTransferred);
 	mOpenContext->GetTransferList()->PutTransfer(this);
 	// Must return immediately as 'this' might have been deleted when put.
 	return;

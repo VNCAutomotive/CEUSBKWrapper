@@ -222,8 +222,9 @@ void OverlappedUserBuffer::Complete(DWORD dwStatus, DWORD dwBytesTransferred)
 		return;
 	operator->().Internal = dwStatus;
 	operator->().InternalHigh = dwBytesTransferred;
-	SetEvent(mhEvent);
+	// Need to flush the status before signalling the event
 	Flush();
+	SetEvent(mhEvent);
 	// No need for the handle so close it
 	CloseHandle(mhEvent);
 	mhEvent = INVALID_HANDLE_VALUE;
