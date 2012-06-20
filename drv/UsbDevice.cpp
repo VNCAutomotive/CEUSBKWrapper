@@ -419,14 +419,14 @@ BOOL UsbDevice::SetAltSetting(DWORD dwInterface, DWORD dwAlternateSetting)
 	USB_TRANSFER transfer = mUsbFuncs->lpSetInterface(mDevice, NULL, NULL, 0, 
 		static_cast<UCHAR>(dwInterface), static_cast<UCHAR>(dwAlternateSetting));
 	if (!transfer) {
-		return false;
+		return FALSE;
 	}
 	DWORD dwError = 0;
 	if(mUsbFuncs->lpGetTransferStatus(transfer, NULL, &dwError)) {
 		SetLastError(Transfer::TranslateError(dwError, 0, FALSE));
 		return dwError == USB_NO_ERROR;
 	} else {
-		return false;
+		return FALSE;
 	}
 }
 
@@ -438,6 +438,12 @@ BOOL UsbDevice::IsEndpointHalted(DWORD dwInterface, UCHAR Endpoint, BOOL& halted
 		return FALSE;
 	}
 
+	if (Endpoint == 0) {
+		// This could use mUsbFuncs->lpIsDefaultPipeHalted,
+		// but that API is deprecated and always returns false.
+		halted = FALSE;
+		return TRUE;
+	}
 	USB_PIPE epPipe = GetPipeForEndpoint(dwInterface, Endpoint);
 	if (!epPipe) {
 		SetLastError(ERROR_INVALID_PARAMETER);
@@ -446,9 +452,9 @@ BOOL UsbDevice::IsEndpointHalted(DWORD dwInterface, UCHAR Endpoint, BOOL& halted
 	// First check the halt on the host side
 	halted = FALSE;
 	if(!mUsbFuncs->lpIsPipeHalted(epPipe, &halted)) {
-		return false;
+		return FALSE;
 	}
-	return true;
+	return TRUE;
 }
 
 BOOL UsbDevice::ClearHalt(DWORD dwInterface, UCHAR Endpoint)
@@ -459,32 +465,38 @@ BOOL UsbDevice::ClearHalt(DWORD dwInterface, UCHAR Endpoint)
 		return FALSE;
 	}
 
-	USB_PIPE epPipe = GetPipeForEndpoint(dwInterface, Endpoint);
-	if (!epPipe) {
-		SetLastError(ERROR_INVALID_PARAMETER);
-		return FALSE;
-	}
-	// First clear the halt on the host side
-	BOOL halted = FALSE;
-	if(!mUsbFuncs->lpIsPipeHalted(epPipe, &halted)) {
-		return false;
-	}
-	// Only count failure to reset as an error if halted
-	if(!mUsbFuncs->lpResetPipe(epPipe) && halted) {
-		return false;
+	if (Endpoint == 0) {
+		if(!mUsbFuncs->lpResetDefaultPipe(mDevice)) {
+			return false;
+		}
+	} else {
+		USB_PIPE epPipe = GetPipeForEndpoint(dwInterface, Endpoint);
+		if (!epPipe) {
+			SetLastError(ERROR_INVALID_PARAMETER);
+			return FALSE;
+		}
+		// First clear the halt on the host side
+		BOOL halted = FALSE;
+		if(!mUsbFuncs->lpIsPipeHalted(epPipe, &halted)) {
+			return FALSE;
+		}
+		// Only count failure to reset as an error if halted
+		if(!mUsbFuncs->lpResetPipe(epPipe) && halted) {
+			return FALSE;
+		}
 	}
 	// Secondly clear the stall on the device side
 	USB_TRANSFER transfer = mUsbFuncs->lpClearFeature(
 		mDevice, NULL, NULL, USB_SEND_TO_ENDPOINT, USB_FEATURE_ENDPOINT_STALL, Endpoint);
 	if (!transfer) {
-		return false;
+		return FALSE;
 	}
 	DWORD dwError = 0;
 	if(mUsbFuncs->lpGetTransferStatus(transfer, NULL, &dwError)) {
 		SetLastError(Transfer::TranslateError(dwError, 0, FALSE));
 		return dwError == USB_NO_ERROR;
 	} else {
-		return false;
+		return FALSE;
 	}
 }
 
