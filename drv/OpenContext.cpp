@@ -447,22 +447,24 @@ BOOL OpenContext::IsPipeHalted(LPUKWD_IS_PIPE_HALTED_INFO lpIsPipeHaltedInfo, LP
 	}
 
 	// Find the interface for this device
-	DWORD dwInterface;
-	if (!dev->FindInterface(lpIsPipeHaltedInfo->Endpoint, dwInterface)) {
-		ERROR_MSG((TEXT("USBKWrapperDrv!OpenContext::IsPipeHalted() - ")
-			TEXT("failed to find interface for endpoint %d on device 0x%08x\r\n"),
-			lpIsPipeHaltedInfo->Endpoint, lpIsPipeHaltedInfo->lpDevice));
-		SetLastError(ERROR_INVALID_PARAMETER);
-		return FALSE;
-	}
-
-	// See if it's already been claimed
-	if (!dev->InterfaceClaimed(dwInterface, this)) {
-		WARN_MSG((TEXT("USBKWrapperDrv!OpenContext::IsPipeHalted() - ")
-			TEXT("using interface %d on device 0x%08x without claiming\r\n"),
-			dwInterface, lpIsPipeHaltedInfo->lpDevice));
-		if (!dev->ClaimInterface(dwInterface, this)) {
+	DWORD dwInterface = -1;
+	if (lpIsPipeHaltedInfo->Endpoint != 0) {
+		if (!dev->FindInterface(lpIsPipeHaltedInfo->Endpoint, dwInterface)) {
+			ERROR_MSG((TEXT("USBKWrapperDrv!OpenContext::IsPipeHalted() - ")
+				TEXT("failed to find interface for endpoint %d on device 0x%08x\r\n"),
+				lpIsPipeHaltedInfo->Endpoint, lpIsPipeHaltedInfo->lpDevice));
+			SetLastError(ERROR_INVALID_PARAMETER);
 			return FALSE;
+		}
+
+		// See if it's already been claimed
+		if (!dev->InterfaceClaimed(dwInterface, this)) {
+			WARN_MSG((TEXT("USBKWrapperDrv!OpenContext::IsPipeHalted() - ")
+				TEXT("using interface %d on device 0x%08x without claiming\r\n"),
+				dwInterface, lpIsPipeHaltedInfo->lpDevice));
+			if (!dev->ClaimInterface(dwInterface, this)) {
+				return FALSE;
+			}
 		}
 	}
 
