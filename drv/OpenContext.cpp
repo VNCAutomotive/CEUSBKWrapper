@@ -405,7 +405,7 @@ BOOL OpenContext::SetAltSetting(LPUKWD_SET_ALTSETTING_INFO lpSetAltSettingInfo)
 						lpSetAltSettingInfo->dwAlternateSetting);
 }
 
-BOOL OpenContext::ClearHalt(LPUKWD_ENDPOINT_INFO lpEndpointInfo)
+BOOL OpenContext::ClearHaltHost(LPUKWD_ENDPOINT_INFO lpEndpointInfo)
 {
 	MutexLocker lock(mMutex);
 	DevicePtr dev (mDevice->GetDeviceList(), lpEndpointInfo->lpDevice);
@@ -434,7 +434,38 @@ BOOL OpenContext::ClearHalt(LPUKWD_ENDPOINT_INFO lpEndpointInfo)
 		}
 	}
 
-	return dev->ClearHalt(dwInterface, lpEndpointInfo->Endpoint);
+	return dev->ClearHaltHost(dwInterface, lpEndpointInfo->Endpoint);
+}
+BOOL OpenContext::ClearHaltDevice(LPUKWD_ENDPOINT_INFO lpEndpointInfo)
+{
+	MutexLocker lock(mMutex);
+	DevicePtr dev (mDevice->GetDeviceList(), lpEndpointInfo->lpDevice);
+	if (!Validate(dev)) {
+		SetLastError(ERROR_INVALID_HANDLE);
+		return FALSE;
+	}
+
+	// Find the interface for this device
+	DWORD dwInterface;
+	if (!dev->FindInterface(lpEndpointInfo->Endpoint, dwInterface)) {
+		ERROR_MSG((TEXT("USBKWrapperDrv!OpenContext::ClearHalt() - ")
+			TEXT("failed to find interface for endpoint %d on device 0x%08x\r\n"),
+			lpEndpointInfo->Endpoint, lpEndpointInfo->lpDevice));
+		SetLastError(ERROR_INVALID_PARAMETER);
+		return FALSE;
+	}
+
+	// See if it's already been claimed
+	if (!dev->InterfaceClaimed(dwInterface, this)) {
+		WARN_MSG((TEXT("USBKWrapperDrv!OpenContext::ClearHalt() - ")
+			TEXT("using interface %d on device 0x%08x without claiming\r\n"),
+			dwInterface, lpEndpointInfo->lpDevice));
+		if (!dev->ClaimInterface(dwInterface, this)) {
+			return FALSE;
+		}
+	}
+
+	return dev->ClearHaltDevice(dwInterface, lpEndpointInfo->Endpoint);
 }
 
 BOOL OpenContext::IsPipeHalted(LPUKWD_ENDPOINT_INFO lpEndpointInfo, LPBOOL halted)

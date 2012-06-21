@@ -78,7 +78,8 @@ public:
 	BOOL SetActiveConfigValue(UCHAR pConfigurationValue);
 	BOOL SetAltSetting(DWORD dwInterface, DWORD dwAlternateSetting);
 	BOOL IsEndpointHalted(DWORD dwInterface, UCHAR Endpoint, BOOL& halted);
-	BOOL ClearHalt(DWORD dwInterface, UCHAR Endpoint);
+	BOOL ClearHaltHost(DWORD dwInterface, UCHAR Endpoint);
+	BOOL ClearHaltDevice(DWORD dwInterface, UCHAR Endpoint);
 
 	BOOL GetTransferStatus(
 		USB_TRANSFER hTransfer,

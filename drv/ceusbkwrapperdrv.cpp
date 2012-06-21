@@ -406,7 +406,7 @@ BOOL IOControl(
 			ret = file->SetAltSetting(info);
 			break;
 		}
-		case IOCTL_UKW_CLEAR_HALT: {
+		case IOCTL_UKW_CLEAR_HALT_HOST: {
 			LPUKWD_ENDPOINT_INFO info = reinterpret_cast<LPUKWD_ENDPOINT_INFO>(pBufIn);
 			if (dwLenIn < sizeof(LPUKWD_ENDPOINT_INFO) || info == NULL) {
 				ERROR_MSG((TEXT("USBKWrapperDrv!IOControl(0x%08x, IOCTL_UKW_CLEAR_HALT, ...) ")
@@ -414,7 +414,18 @@ BOOL IOControl(
 				SetLastError(ERROR_INVALID_PARAMETER);
 				break;
 			}
-			ret = file->ClearHalt(info);
+			ret = file->ClearHaltHost(info);
+			break;
+		}
+		case IOCTL_UKW_CLEAR_HALT_DEVICE: {
+			LPUKWD_ENDPOINT_INFO info = reinterpret_cast<LPUKWD_ENDPOINT_INFO>(pBufIn);
+			if (dwLenIn < sizeof(LPUKWD_ENDPOINT_INFO) || info == NULL) {
+				ERROR_MSG((TEXT("USBKWrapperDrv!IOControl(0x%08x, IOCTL_UKW_CLEAR_HALT, ...) ")
+					TEXT("passed invalid input len: %d\r\n"), hOpenContext, dwLenIn));
+				SetLastError(ERROR_INVALID_PARAMETER);
+				break;
+			}
+			ret = file->ClearHaltDevice(info);
 			break;
 		}
 		case IOCTL_UKW_IS_PIPE_HALTED: {

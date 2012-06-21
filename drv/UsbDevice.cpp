@@ -458,7 +458,7 @@ BOOL UsbDevice::IsEndpointHalted(DWORD dwInterface, UCHAR Endpoint, BOOL& halted
 	return TRUE;
 }
 
-BOOL UsbDevice::ClearHalt(DWORD dwInterface, UCHAR Endpoint)
+BOOL UsbDevice::ClearHaltHost(DWORD dwInterface, UCHAR Endpoint)
 {
 	ReadLocker lock(mCloseMutex);
 	if (Closed()) {
@@ -486,7 +486,17 @@ BOOL UsbDevice::ClearHalt(DWORD dwInterface, UCHAR Endpoint)
 			return FALSE;
 		}
 	}
-	// Secondly clear the stall on the device side
+	return TRUE;
+}
+
+BOOL UsbDevice::ClearHaltDevice(DWORD dwInterface, UCHAR Endpoint)
+{
+	ReadLocker lock(mCloseMutex);
+	if (Closed()) {
+		SetLastError(ERROR_INVALID_HANDLE);
+		return FALSE;
+	}
+
 	USB_TRANSFER transfer = mUsbFuncs->lpClearFeature(
 		mDevice, NULL, NULL, USB_SEND_TO_ENDPOINT, USB_FEATURE_ENDPOINT_STALL, Endpoint);
 	if (!transfer) {
