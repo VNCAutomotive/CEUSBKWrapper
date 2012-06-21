@@ -401,12 +401,12 @@ ceusbkwrapper_API BOOL WINAPI UkwGetConfigDescriptor(
 		NULL, NULL);
 }
 
-ceusbkwrapper_API BOOL WINAPI UkwClearHalt(
+ceusbkwrapper_API BOOL WINAPI UkwClearHaltHost(
 	UKW_DEVICE lpDevice,
 	UCHAR endpoint)
 {
 	ENTRYPOINT_MSG((
-		TEXT("USBKWrapper!UkwClearHalt(0x%08x, %02x)\r\n"),
+		TEXT("USBKWrapper!UkwClearHaltHost(0x%08x, %02x)\r\n"),
 		lpDevice, endpoint));
 
 	UKWD_ENDPOINT_INFO info;
@@ -415,7 +415,26 @@ ceusbkwrapper_API BOOL WINAPI UkwClearHalt(
 	info.Endpoint = endpoint;
 	return DeviceIoControl(
 		lpDevice->hDriver,
-		IOCTL_UKW_CLEAR_HALT,
+		IOCTL_UKW_CLEAR_HALT_HOST,
+		&info, sizeof(info),
+		NULL, NULL, NULL, NULL);
+}
+
+ceusbkwrapper_API BOOL WINAPI UkwClearHaltDevice(
+	UKW_DEVICE lpDevice,
+	UCHAR endpoint)
+{
+	ENTRYPOINT_MSG((
+		TEXT("USBKWrapper!UkwClearHaltDevice(0x%08x, %02x)\r\n"),
+		lpDevice, endpoint));
+
+	UKWD_ENDPOINT_INFO info;
+	info.dwCount = sizeof(info);
+	info.lpDevice = lpDevice->dev;
+	info.Endpoint = endpoint;
+	return DeviceIoControl(
+		lpDevice->hDriver,
+		IOCTL_UKW_CLEAR_HALT_DEVICE,
 		&info, sizeof(info),
 		NULL, NULL, NULL, NULL);
 }

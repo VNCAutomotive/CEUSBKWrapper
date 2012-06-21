@@ -232,9 +232,9 @@ ceusbkwrapper_API BOOL WINAPI UkwGetConfigDescriptor(
 	);
 
 /**
- * Clears the halt and stall status on the provided endpoint.
+ * Clears the host halt status on the provided endpoint.
  *
- * This clears both the host and remote state of the endpoint.
+ * This only clears the host state of the endpoint.
  *
  * The interface should have been previously claimed before calling this.
  *
@@ -242,7 +242,22 @@ ceusbkwrapper_API BOOL WINAPI UkwGetConfigDescriptor(
  * \param endpoint [in] The endpoint to clear.
  * \return TRUE on success, or FALSE on failure.
  */
-ceusbkwrapper_API BOOL WINAPI UkwClearHalt(
+ceusbkwrapper_API BOOL WINAPI UkwClearHaltHost(
+	UKW_DEVICE lpDevice,
+	UCHAR endpoint);
+
+/**
+ * Clears the device halt status on the provided endpoint.
+ *
+ * This only clears the remote state of the endpoint.
+ *
+ * The interface should have been previously claimed before calling this.
+ *
+ * \param lpDevice [in] A device retrieved using UkwGetDeviceList().
+ * \param endpoint [in] The endpoint to clear.
+ * \return TRUE on success, or FALSE on failure.
+ */
+ceusbkwrapper_API BOOL WINAPI UkwClearHaltDevice(
 	UKW_DEVICE lpDevice,
 	UCHAR endpoint);
 

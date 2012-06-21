@@ -15,7 +15,8 @@ EXPORTS
 	UkwClaimInterface
 	UkwReleaseInterface
 	UkwSetInterfaceAlternateSetting
-	UkwClearHalt
+	UkwClearHaltHost
+	UkwClearHaltDevice
 	UkwResetDevice
 	UkwReenumerateDevice
 	UkwKernelDriverActive

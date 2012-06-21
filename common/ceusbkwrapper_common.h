@@ -76,15 +76,15 @@ static const GUID ceusbkwrapper_guid = DEVCLASS_CEUSBKWRAPPER_GUID;
 /* Sets the active USB configuration value for a USB device */
 #define IOCTL_UKW_SET_ACTIVE_CONFIG_VALUE		USBKWRAPPER_CTL_CODE(10)
 /* Clears halt (host side) condition of an endpoint in the provided UKWD_ENDPOINT_INFO */
-#define IOCTL_UKW_CLEAR_HALT                    USBKWRAPPER_CTL_CODE(11)
+#define IOCTL_UKW_CLEAR_HALT_HOST					USBKWRAPPER_CTL_CODE(11)
 /* Resets a provided UKWD_USB_DEVICE */
 #define IOCTL_UKW_RESET											USBKWRAPPER_CTL_CODE(12)
 /* Tests if a kernel driver is active for a provided UKWD_USB_DEVICE */
-#define IOCTL_UKW_KERNEL_DRIVER_ACTIVE			USBKWRAPPER_CTL_CODE(13)
+#define IOCTL_UKW_KERNEL_DRIVER_ACTIVE				USBKWRAPPER_CTL_CODE(13)
 /* Attaches a kernel driver to a given interface for a provided UKWD_USB_DEVICE */
-#define IOCTL_UKW_ATTACH_KERNEL_DRIVER			USBKWRAPPER_CTL_CODE(14)
+#define IOCTL_UKW_ATTACH_KERNEL_DRIVER				USBKWRAPPER_CTL_CODE(14)
 /* Detaches a kernel driver from a given interface for a provided UKWD_USB_DEVICE */
-#define IOCTL_UKW_DETACH_KERNEL_DRIVER			USBKWRAPPER_CTL_CODE(15)
+#define IOCTL_UKW_DETACH_KERNEL_DRIVER				USBKWRAPPER_CTL_CODE(15)
 /* Issues a Bulk transfer request using data inside the provided UKWD_BULK_TRANSFER_INFO */
 #define IOCTL_UKW_ISSUE_BULK_TRANSFER				USBKWRAPPER_CTL_CODE(16)
 /* Reenumerates a provided UKWD_USB_DEVICE */
@@ -92,6 +92,8 @@ static const GUID ceusbkwrapper_guid = DEVCLASS_CEUSBKWRAPPER_GUID;
 /* Retrieves if an endpoint is halted (on the host side) using data inside the provided
    UKWD_ENDPOINT_INFO */
 #define IOCTL_UKW_IS_PIPE_HALTED					USBKWRAPPER_CTL_CODE(18)
+/* Clears stall (device side) condition of an endpoint in the provided UKWD_ENDPOINT_INFO */
+#define IOCTL_UKW_CLEAR_HALT_DEVICE					USBKWRAPPER_CTL_CODE(19)
 
 // Used as a configuration index when the current active configuration is desired.
 #define UKWD_ACTIVE_CONFIGURATION        -1
