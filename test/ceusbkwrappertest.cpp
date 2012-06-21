@@ -78,7 +78,8 @@ static void printMenu()
 			printf("ka ) attach a kernel driver to an interface\n");
 			printf("kd ) detach a kernel driver from an interface\n");
 			printf("hq ) test if an endpoint is halted");
-			printf("hc ) clear halt/stall on an endpoint\n");
+			printf("hc ) clear stall/halt (host) on an endpoint\n");
+			printf("hs ) clear stall/halt (device) on an endpoint\n");
 		} else {
 			printf("g ) get USB device list\n");
 		}
@@ -867,11 +868,21 @@ static void performHaltOperation(char line[])
 		}
 	case 'c':
 		{
-		BOOL result = UkwClearHalt(device, ep);
+		BOOL result = UkwClearHaltHost(device, ep);
 		if (!result) {
-			printf("Failed to clear halt on endpoint %d on device %d: %d\n", ep, devIdx, GetLastError());
+			printf("Failed to clear halt/stall (host) on endpoint %d on device %d: %d\n", ep, devIdx, GetLastError());
 		} else {
-			printf("Cleared halt on endpoint %d successfully\n", ep);
+			printf("Cleared halt/stall (host) on endpoint %d successfully\n", ep);
+		}
+		break;
+		}
+	case 's':
+		{
+		BOOL result = UkwClearHaltDevice(device, ep);
+		if (!result) {
+			printf("Failed to clear halt/stall (device) on endpoint %d on device %d: %d\n", ep, devIdx, GetLastError());
+		} else {
+			printf("Cleared halt/stall (device) on endpoint %d successfully\n", ep);
 		}
 		break;
 		}
