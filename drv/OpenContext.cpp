@@ -405,10 +405,10 @@ BOOL OpenContext::SetAltSetting(LPUKWD_SET_ALTSETTING_INFO lpSetAltSettingInfo)
 						lpSetAltSettingInfo->dwAlternateSetting);
 }
 
-BOOL OpenContext::ClearHalt(LPUKWD_CLEAR_HALT_INFO lpClearHaltInfo)
+BOOL OpenContext::ClearHalt(LPUKWD_ENDPOINT_INFO lpEndpointInfo)
 {
 	MutexLocker lock(mMutex);
-	DevicePtr dev (mDevice->GetDeviceList(), lpClearHaltInfo->lpDevice);
+	DevicePtr dev (mDevice->GetDeviceList(), lpEndpointInfo->lpDevice);
 	if (!Validate(dev)) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
@@ -416,10 +416,10 @@ BOOL OpenContext::ClearHalt(LPUKWD_CLEAR_HALT_INFO lpClearHaltInfo)
 
 	// Find the interface for this device
 	DWORD dwInterface;
-	if (!dev->FindInterface(lpClearHaltInfo->Endpoint, dwInterface)) {
+	if (!dev->FindInterface(lpEndpointInfo->Endpoint, dwInterface)) {
 		ERROR_MSG((TEXT("USBKWrapperDrv!OpenContext::ClearHalt() - ")
 			TEXT("failed to find interface for endpoint %d on device 0x%08x\r\n"),
-			lpClearHaltInfo->Endpoint, lpClearHaltInfo->lpDevice));
+			lpEndpointInfo->Endpoint, lpEndpointInfo->lpDevice));
 		SetLastError(ERROR_INVALID_PARAMETER);
 		return FALSE;
 	}
@@ -428,19 +428,19 @@ BOOL OpenContext::ClearHalt(LPUKWD_CLEAR_HALT_INFO lpClearHaltInfo)
 	if (!dev->InterfaceClaimed(dwInterface, this)) {
 		WARN_MSG((TEXT("USBKWrapperDrv!OpenContext::ClearHalt() - ")
 			TEXT("using interface %d on device 0x%08x without claiming\r\n"),
-			dwInterface, lpClearHaltInfo->lpDevice));
+			dwInterface, lpEndpointInfo->lpDevice));
 		if (!dev->ClaimInterface(dwInterface, this)) {
 			return FALSE;
 		}
 	}
 
-	return dev->ClearHalt(dwInterface, lpClearHaltInfo->Endpoint);
+	return dev->ClearHalt(dwInterface, lpEndpointInfo->Endpoint);
 }
 
-BOOL OpenContext::IsPipeHalted(LPUKWD_IS_PIPE_HALTED_INFO lpIsPipeHaltedInfo, LPBOOL halted)
+BOOL OpenContext::IsPipeHalted(LPUKWD_ENDPOINT_INFO lpEndpointInfo, LPBOOL halted)
 {
 	MutexLocker lock(mMutex);
-	DevicePtr dev (mDevice->GetDeviceList(), lpIsPipeHaltedInfo->lpDevice);
+	DevicePtr dev (mDevice->GetDeviceList(), lpEndpointInfo->lpDevice);
 	if (!Validate(dev) || halted == NULL) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
@@ -448,11 +448,11 @@ BOOL OpenContext::IsPipeHalted(LPUKWD_IS_PIPE_HALTED_INFO lpIsPipeHaltedInfo, LP
 
 	// Find the interface for this device
 	DWORD dwInterface = -1;
-	if (lpIsPipeHaltedInfo->Endpoint != 0) {
-		if (!dev->FindInterface(lpIsPipeHaltedInfo->Endpoint, dwInterface)) {
+	if (lpEndpointInfo->Endpoint != 0) {
+		if (!dev->FindInterface(lpEndpointInfo->Endpoint, dwInterface)) {
 			ERROR_MSG((TEXT("USBKWrapperDrv!OpenContext::IsPipeHalted() - ")
 				TEXT("failed to find interface for endpoint %d on device 0x%08x\r\n"),
-				lpIsPipeHaltedInfo->Endpoint, lpIsPipeHaltedInfo->lpDevice));
+				lpEndpointInfo->Endpoint, lpEndpointInfo->lpDevice));
 			SetLastError(ERROR_INVALID_PARAMETER);
 			return FALSE;
 		}
@@ -461,14 +461,14 @@ BOOL OpenContext::IsPipeHalted(LPUKWD_IS_PIPE_HALTED_INFO lpIsPipeHaltedInfo, LP
 		if (!dev->InterfaceClaimed(dwInterface, this)) {
 			WARN_MSG((TEXT("USBKWrapperDrv!OpenContext::IsPipeHalted() - ")
 				TEXT("using interface %d on device 0x%08x without claiming\r\n"),
-				dwInterface, lpIsPipeHaltedInfo->lpDevice));
+				dwInterface, lpEndpointInfo->lpDevice));
 			if (!dev->ClaimInterface(dwInterface, this)) {
 				return FALSE;
 			}
 		}
 	}
 
-	return dev->IsEndpointHalted(dwInterface, lpIsPipeHaltedInfo->Endpoint, *halted);
+	return dev->IsEndpointHalted(dwInterface, lpEndpointInfo->Endpoint, *halted);
 }
 
 BOOL OpenContext::ResetDevice(UKWD_USB_DEVICE DeviceIdentifier)

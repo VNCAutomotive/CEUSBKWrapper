@@ -48,8 +48,8 @@ public:
 	BOOL ClaimInterface(LPUKWD_INTERFACE_INFO lpInterfaceInfo);
 	BOOL ReleaseInterface(LPUKWD_INTERFACE_INFO lpInterfaceInfo);
 	BOOL SetAltSetting(LPUKWD_SET_ALTSETTING_INFO lpSetAltSettingInfo);
-	BOOL ClearHalt(LPUKWD_CLEAR_HALT_INFO lpClearHaltInfo);
-	BOOL IsPipeHalted(LPUKWD_IS_PIPE_HALTED_INFO lpIsPipeHaltedInfo, LPBOOL halted);
+	BOOL ClearHalt(LPUKWD_ENDPOINT_INFO lpEndpointInfo);
+	BOOL IsPipeHalted(LPUKWD_ENDPOINT_INFO lpEndpointInfo, LPBOOL halted);
 	BOOL ResetDevice(UKWD_USB_DEVICE DeviceIdentifier);
 	BOOL ReenumerateDevice(UKWD_USB_DEVICE DeviceIdentifier);
 	BOOL IsKernelDriverActiveForInterface(LPUKWD_INTERFACE_INFO lpInterfaceInfo, PBOOL active);

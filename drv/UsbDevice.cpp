@@ -27,6 +27,7 @@
 #include "MutexLocker.h"
 #include "EndianUtils.h"
 #include "InterfaceClaimers.h"
+#include <Usbclient.h>
 
 #include <new>
 
@@ -586,7 +587,6 @@ USB_TRANSFER UsbDevice::IssueBulkTransfer(
 		SetLastError(ERROR_INVALID_PARAMETER);
 		return NULL;
 	}
-
 	return mUsbFuncs->lpIssueBulkTransfer(
 		epPipe, callback ? &StaticTransferNotifyRoutine : NULL, callback,
 		dwFlags, dwDataBufferSize, lpvBuffer, NULL);

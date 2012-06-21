@@ -75,7 +75,7 @@ static const GUID ceusbkwrapper_guid = DEVCLASS_CEUSBKWRAPPER_GUID;
 #define IOCTL_UKW_SET_ALTSETTING                USBKWRAPPER_CTL_CODE(9)
 /* Sets the active USB configuration value for a USB device */
 #define IOCTL_UKW_SET_ACTIVE_CONFIG_VALUE		USBKWRAPPER_CTL_CODE(10)
-/* Clears halt/stall condition of an endpoint in the provided UKWD_CLEAR_HALT_INFO */
+/* Clears halt (host side) condition of an endpoint in the provided UKWD_ENDPOINT_INFO */
 #define IOCTL_UKW_CLEAR_HALT                    USBKWRAPPER_CTL_CODE(11)
 /* Resets a provided UKWD_USB_DEVICE */
 #define IOCTL_UKW_RESET											USBKWRAPPER_CTL_CODE(12)
@@ -90,7 +90,7 @@ static const GUID ceusbkwrapper_guid = DEVCLASS_CEUSBKWRAPPER_GUID;
 /* Reenumerates a provided UKWD_USB_DEVICE */
 #define IOCTL_UKW_REENUMERATE						USBKWRAPPER_CTL_CODE(17)
 /* Retrieves if an endpoint is halted (on the host side) using data inside the provided
-   UKWD_IS_PIPE_HALTED_INFO */
+   UKWD_ENDPOINT_INFO */
 #define IOCTL_UKW_IS_PIPE_HALTED					USBKWRAPPER_CTL_CODE(18)
 
 // Used as a configuration index when the current active configuration is desired.
@@ -143,11 +143,11 @@ typedef struct _UKWD_GET_CONFIG_DESC_INFO {
 	DWORD dwDescriptorBufferSize;
 } UKWD_GET_CONFIG_DESC_INFO, * PUKWD_GET_CONFIG_DESC_INFO, * LPUKWD_GET_CONFIG_DESC_INFO;
 
-typedef struct _UKWD_CLEAR_HALT_INFO {
+typedef struct _UKWD_ENDPOINT_INFO {
 	DWORD dwCount;
 	UKWD_USB_DEVICE lpDevice;
 	UCHAR Endpoint;
-} UKWD_CLEAR_HALT_INFO, * PUKWD_CLEAR_HALT_INFO, * LPUKWD_CLEAR_HALT_INFO;
+} UKWD_ENDPOINT_INFO, * PUKWD_ENDPOINT_INFO, * LPUKWD_ENDPOINT_INFO;
 
 typedef struct _UKWD_SET_ACTIVE_CONFIG_VALUE_INFO {
 	DWORD dwCount;
@@ -168,9 +168,4 @@ typedef struct _UKWD_SET_ALTSETTING_INFO {
 	DWORD dwAlternateSetting;
 } UKWD_SET_ALTSETTING_INFO, * PUKWD_SET_ALTSETTING_INFO, * LPUKWD_SET_ALTSETTING_INFO;
 
-typedef struct _UKWD_IS_PIPE_HALTED_INFO {
-	DWORD dwCount;
-	UKWD_USB_DEVICE lpDevice;
-	UCHAR Endpoint;
-} UKWD_IS_PIPE_HALTED_INFO, * PUKWD_IS_PIPE_HALTED_INFO, * LPUKWD_IS_PIPE_HALTED_INFO;
 #endif // CEUSBKWRAPPER_COMMON_H

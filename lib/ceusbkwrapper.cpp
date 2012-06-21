@@ -409,7 +409,7 @@ ceusbkwrapper_API BOOL WINAPI UkwClearHalt(
 		TEXT("USBKWrapper!UkwClearHalt(0x%08x, %02x)\r\n"),
 		lpDevice, endpoint));
 
-	UKWD_CLEAR_HALT_INFO info;
+	UKWD_ENDPOINT_INFO info;
 	info.dwCount = sizeof(info);
 	info.lpDevice = lpDevice->dev;
 	info.Endpoint = endpoint;
@@ -429,7 +429,7 @@ ceusbkwrapper_API BOOL WINAPI UkwIsPipeHalted(
 		TEXT("USBKWrapper!UkwIsPipeHalted(0x%08x, %02x, ...)\r\n"),
 		lpDevice, endpoint));
 
-	UKWD_IS_PIPE_HALTED_INFO info;
+	UKWD_ENDPOINT_INFO info;
 	info.dwCount = sizeof(info);
 	info.lpDevice = lpDevice->dev;
 	info.Endpoint = endpoint;

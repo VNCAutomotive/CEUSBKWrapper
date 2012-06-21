@@ -407,9 +407,9 @@ BOOL IOControl(
 			break;
 		}
 		case IOCTL_UKW_CLEAR_HALT: {
-			LPUKWD_CLEAR_HALT_INFO info = reinterpret_cast<LPUKWD_CLEAR_HALT_INFO>(pBufIn);
-			if (dwLenIn < sizeof(UKWD_CLEAR_HALT_INFO) || info == NULL) {
-				ERROR_MSG((TEXT("USBKWrapperDrv!IOControl(0x%08x, LPUKWD_CLEAR_HALT_INFO, ...) ")
+			LPUKWD_ENDPOINT_INFO info = reinterpret_cast<LPUKWD_ENDPOINT_INFO>(pBufIn);
+			if (dwLenIn < sizeof(LPUKWD_ENDPOINT_INFO) || info == NULL) {
+				ERROR_MSG((TEXT("USBKWrapperDrv!IOControl(0x%08x, IOCTL_UKW_CLEAR_HALT, ...) ")
 					TEXT("passed invalid input len: %d\r\n"), hOpenContext, dwLenIn));
 				SetLastError(ERROR_INVALID_PARAMETER);
 				break;
@@ -418,10 +418,10 @@ BOOL IOControl(
 			break;
 		}
 		case IOCTL_UKW_IS_PIPE_HALTED: {
-			LPUKWD_IS_PIPE_HALTED_INFO info = reinterpret_cast<LPUKWD_IS_PIPE_HALTED_INFO>(pBufIn);
+			LPUKWD_ENDPOINT_INFO info = reinterpret_cast<LPUKWD_ENDPOINT_INFO>(pBufIn);
 			LPBOOL ph = reinterpret_cast<LPBOOL>(pBufOut);
-			if (dwLenIn < sizeof(UKWD_IS_PIPE_HALTED_INFO) || info == NULL) {
-				ERROR_MSG((TEXT("USBKWrapperDrv!IOControl(0x%08x, LPUKWD_IS_PIPE_HALTED_INFO, ...) ")
+			if (dwLenIn < sizeof(LPUKWD_ENDPOINT_INFO) || info == NULL) {
+				ERROR_MSG((TEXT("USBKWrapperDrv!IOControl(0x%08x, IOCTL_UKW_IS_PIPE_HALTED, ...) ")
 					TEXT("passed invalid input len: %d\r\n"), hOpenContext, dwLenIn));
 				SetLastError(ERROR_INVALID_PARAMETER);
 				break;
