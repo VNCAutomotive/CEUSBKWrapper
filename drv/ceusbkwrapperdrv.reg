@@ -77,10 +77,8 @@
 ; For further information on what these values mean see:
 ; http://msdn.microsoft.com/en-us/library/ms894793.aspx
   
-; Match all Google devices, such as the Nexus One and Nexus S
+; Match all Google devices
 ; VID = 0x18D1
-; This also includes devices implementing the Android Accessory
-; Protocol in Accessory mode (which have PID = 0x2D00 or 0x2D01)
 [HKEY_LOCAL_MACHINE\Drivers\USB\LoadClients\6353\Default\Default\Usb_Kernel_Wrapper]
   "Dll"    = "ceusbkwrapperdrv.dll"
 
@@ -89,7 +87,7 @@
 [HKEY_LOCAL_MACHINE\Drivers\USB\LoadClients\4042\Default\Default\Usb_Kernel_Wrapper]
   "Dll"    = "ceusbkwrapperdrv.dll"
 
-; Match all Nokia devices, such as Nokia mobile phones
+; Match all Nokia devices
 ; VID = 0x0421
 [HKEY_LOCAL_MACHINE\Drivers\USB\LoadClients\1057\Default\Default\Usb_Kernel_Wrapper]
   "Dll"    = "ceusbkwrapperdrv.dll"
