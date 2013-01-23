@@ -57,7 +57,7 @@ Transfer::Transfer(
 	lpUserBuffer, dwUserBufferSize)
 , mBytesTransferredBuffer(
 	AccessFlagsForBytesTransferredBuffer(dwFlags, lpUserOverlapped),
-	lpUserBytesTransferred)
+	lpUserBytesTransferred, sizeof(DWORD))
 , mOverlappedBuffer(lpUserOverlapped)
 {
 	mOpenContext->GetTransferList()->RegisterTransfer(this);

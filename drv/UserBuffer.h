@@ -38,7 +38,7 @@ public:
 	UserBuffer(
 		DWORD dwAccessFlags,
 		T lpSrcUnmarshalled,
-		DWORD dwSize = sizeof(*(reinterpret_cast<T>(1))));
+		DWORD dwSize);
 	~UserBuffer();
 	BOOL Valid() const;
 	T UserPtr();

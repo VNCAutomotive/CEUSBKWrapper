@@ -177,7 +177,7 @@ template class UserBuffer<LPDWORD>;
 template class UserBuffer<LPOVERLAPPED>;
 
 OverlappedUserBuffer::OverlappedUserBuffer(LPOVERLAPPED lpOverlapped)
-: UserBuffer<LPOVERLAPPED>(UBA_WRITE | UBA_ASYNC, lpOverlapped)
+: UserBuffer<LPOVERLAPPED>(UBA_WRITE | UBA_ASYNC, lpOverlapped, sizeof(OVERLAPPED))
 , mhEvent(INVALID_HANDLE_VALUE)
 , mCompleted(FALSE)
 {
