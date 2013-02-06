@@ -87,6 +87,8 @@ UsbDevice::UsbDevice(
 
 UsbDevice::~UsbDevice()
 {
+	Close();
+
 	if (mInterfaceClaimers)
 		delete [] mInterfaceClaimers;
 

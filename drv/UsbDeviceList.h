@@ -47,6 +47,9 @@ typedef struct {
 	INTERFACE_FILTER_FIELD idVendor;
 	INTERFACE_FILTER_FIELD idProduct;
 
+	// Filter flags
+	BOOL noAttach;
+
 } INTERFACE_FILTER, *PINTERFACE_FILTER, *LPINTERFACE_FILTER;
 typedef const LPINTERFACE_FILTER LPCINTERFACE_FILTER;
 
@@ -82,6 +85,7 @@ private:
 	LONG FindNextInterfaceFilterField(LPCWSTR str, DWORD offset, LPDWORD nextOffset, LPINTERFACE_FILTER_FIELD field);
 
 	void LogFilterField(LPCWSTR name, LPCINTERFACE_FILTER_FIELD field);
+	void LogFilterFlag(LPCWSTR name, BOOL flag);
 	void LogFilter(LPCWSTR message, LPCINTERFACE_FILTER filter);
 
 	// This should be called by destructor or with mMutex held

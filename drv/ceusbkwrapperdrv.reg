@@ -41,7 +41,7 @@
 ; with "InterfaceFilter_". The string specifies a filter in the
 ; following format:
 ;
-; "bInterfaceClass:bInterfaceSubClass:bInterfaceProtocol[:idVendor[:idProduct]]"
+; "bInterfaceClass:bInterfaceSubClass:bInterfaceProtocol[:idVendor[:idProduct]][;NO_ATTACH]"
 ;
 ; Each element of the filter may be a base 10 value matching the
 ; corresponding attribute of the USB interface or '*' (always matching
@@ -58,6 +58,15 @@
 ; DOES NOT MATCH) by prepending the '!' character. For example, the interface
 ; filter "8:*:*:!1057" matches mass storage interfaces on all devices except
 ; Nokia devices.
+;
+; Some device drivers may not function correctly if this driver has also 
+; accepted control of the device. To ensure seamless operation with these
+; drivers, an interface filter may have the flag NO_ATTACH appended to it.
+; If any matching interface filter has this flag, then this driver shall
+; refuse to accept control of the device. No attempt will be made to locate
+; drivers for any other matching interface filters for the device. For example,
+; the interface filter "2:13:*;NO_ATTACH" will cause this driver to refuse
+; to accept control of any device exposing a CDC-NCM interface.
 ;
 [HKEY_LOCAL_MACHINE\Drivers\USB\ClientDrivers\Usb_Kernel_Wrapper]
   "Prefix" = "UKW"
@@ -106,11 +115,6 @@
 ; VID = 0x0fce
 [HKEY_LOCAL_MACHINE\Drivers\USB\LoadClients\4046\Default\Default\Usb_Kernel_Wrapper]
   "Dll"    = "ceusbkwrapperdrv.dll"	
-
-; Match all Apple devices
-; VID = 0x05ac
-[HKEY_LOCAL_MACHINE\Drivers\USB\LoadClients\1452\Default\Default\Usb_Kernel_Wrapper]
-  "Dll"    = "ceusbkwrapperdrv.dll"
 
 ; Match all HTC devices
 ; VID = 0x0bb4

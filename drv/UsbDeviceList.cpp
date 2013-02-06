@@ -21,6 +21,7 @@
 #include "UsbDevice.h"
 #include "drvdbg.h"
 #include "MutexLocker.h"
+#include "ArrayAutoPtr.h"
 
 #include <new>
 #include <memory>
@@ -59,9 +60,15 @@ LONG UsbDeviceList::FindNextInterfaceFilterField(LPCWSTR str, DWORD offset, LPDW
 	(*nextOffset) = offset;
 
 	for (DWORD i = offset; i <= wcslen(str); i++) {
-		// Field is terminated by ':' or end of string
-		if (str[i] == ':' || str[i] == '\0') {
-			(*nextOffset) = i + 1;
+		// Field is terminated by ':', ';' or end of string
+		if (str[i] == ':' || str[i] == ';' || str[i] == '\0') {
+			// Represent ';' as reaching end of string (only flags occur after 
+			// this seperator)
+			if (str[i] == ';') {
+				(*nextOffset) = wcslen(str) + 1;
+			} else {
+				(*nextOffset) = i + 1;
+			}
 			LONG result = ERROR_SUCCESS;
 
 			// Empty fields are disallowed
@@ -79,7 +86,7 @@ LONG UsbDeviceList::FindNextInterfaceFilterField(LPCWSTR str, DWORD offset, LPDW
 				}
 				field->value = wcstol(&str[offset], &endptr, 10);
 				if (endptr == &str[offset] || 
-					(endptr[0] != ':' && endptr[0] != '\0')) {
+					(endptr[0] != ':' && endptr[0] != ';' && endptr[0] != '\0')) {
 					result = ERROR_INVALID_PARAMETER;
 				}
 			}
@@ -103,6 +110,14 @@ void UsbDeviceList::LogFilterField(LPCWSTR name, LPCINTERFACE_FILTER_FIELD field
 	}
 }
 
+void UsbDeviceList::LogFilterFlag(LPCWSTR name, BOOL flag)
+{
+	// Only log the flags that are set explicitly.
+	if (flag) {
+		IFACEFILTER_MSG((TEXT("USBKWrapperDrv:     %s\r\n"), name));
+	}
+}
+
 void UsbDeviceList::LogFilter(LPCWSTR message, LPCINTERFACE_FILTER filter)
 {
 	IFACEFILTER_MSG((TEXT("%s %s:\r\n"), message, filter->name));
@@ -111,6 +126,8 @@ void UsbDeviceList::LogFilter(LPCWSTR message, LPCINTERFACE_FILTER filter)
 	LogFilterField(TEXT("bInterfaceProtocol"), &filter->bInterfaceProtocol);
 	LogFilterField(TEXT("idVendor"), &filter->idVendor);
 	LogFilterField(TEXT("idProduct"), &filter->idProduct);
+
+	LogFilterFlag(TEXT("NO_ATTACH"), filter->noAttach);
 }
 
 void UsbDeviceList::AddInterfaceFilter(LPCWSTR name, LPCWSTR value)
@@ -148,6 +165,13 @@ void UsbDeviceList::AddInterfaceFilter(LPCWSTR name, LPCWSTR value)
 	}
 	wcscpy(filterName, name);
 
+	// Finally, check for any optional flags (we can switch to a more advanced
+	// flag parsing strategy if and when we add more flags in the future).
+	BOOL noAttach = FALSE;
+	if (wcsstr(value, L";NO_ATTACH") != NULL) {
+		noAttach = TRUE;
+	}
+
 	INTERFACE_FILTER* newFilterList = (INTERFACE_FILTER*) realloc(mInterfaceFilters, sizeof(INTERFACE_FILTER)*(mNumInterfaceFilters+1));
 	if (!newFilterList) {
 		ERROR_MSG((TEXT("USBKWrapperDrv!UsbDeviceList::AddInterfaceFilter() - Out of memory reallocating filter list\r\n")));
@@ -163,6 +187,7 @@ void UsbDeviceList::AddInterfaceFilter(LPCWSTR name, LPCWSTR value)
 	mInterfaceFilters[mNumInterfaceFilters].bInterfaceProtocol = bInterfaceProtocol;
 	mInterfaceFilters[mNumInterfaceFilters].idVendor = idVendor;
 	mInterfaceFilters[mNumInterfaceFilters].idProduct = idProduct;
+	mInterfaceFilters[mNumInterfaceFilters].noAttach = noAttach;
 	LogFilter(TEXT("USBKWrapperDrv: Added interface filter"), &mInterfaceFilters[mNumInterfaceFilters]);		
 	mNumInterfaceFilters++;
 }
@@ -289,6 +314,9 @@ BOOL UsbDeviceList::AttachDevice(
 	(void) lpDriverSettings;
 	(void) dwUnused;
 
+	// Default to accepting control of device, until we find a reason not to.
+	*fAcceptControl = TRUE;
+
 	LPCUSB_DEVICE device = lpUsbFuncs->lpGetDeviceInfo(hDevice);
 
 	// Retrieve interface filter list from registry if not already done so
@@ -313,6 +341,47 @@ BOOL UsbDeviceList::AttachDevice(
 				return FALSE;
 			}
 		}
+	}
+
+	// If we're attaching for the entire device, locate any interface filters 
+	// matching the interfaces of this device.
+	//
+	// If any matching filter specifies NO_ATTACH, we refuse to accept control
+	// of the device. We only match one filter to an interface. If multiple 
+	// filters match, only the first shall be used.
+	BOOL filterMatches = FALSE;
+	ArrayAutoPtr<DWORD> filters;
+	if (!lpInterface && mNumInterfaceFilters > 0) {
+		filters = ArrayAutoPtr<DWORD>(new (std::nothrow) DWORD[device->lpActiveConfig->dwNumInterfaces]);
+		if (!filters.Get()) {
+			ERROR_MSG((TEXT("USBKWrapperDrv!UsbDeviceList::AttachDevice")
+				TEXT(" - out of memory allocating filter match list")));
+			*fAcceptControl = FALSE;
+			return FALSE;
+		}
+
+		for (DWORD i = 0; i < device->lpActiveConfig->dwNumInterfaces && *fAcceptControl; i++) {
+			DWORD index;
+			if (FindFilterForInterface(device, &device->lpActiveConfig->lpInterfaces[i], &index)) {
+				filters.Get(i) = index;
+				filterMatches = TRUE;
+
+				if (mInterfaceFilters[index].noAttach) {
+					IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Interface %u matches filter %s")
+						TEXT(", not accepting device control\r\n"), 
+						device->lpActiveConfig->lpInterfaces[i].Descriptor.bInterfaceNumber, 
+						mInterfaceFilters[index].name));
+					*fAcceptControl = FALSE;
+				}
+			} else {
+				filters.Get(i) = mNumInterfaceFilters;
+			}
+		}
+	}
+
+	// If we're not accepting control, finish now
+	if (!*fAcceptControl) {
+		return FALSE;
 	}
 
 	// Allocate a fake bus and address for this device
@@ -346,17 +415,22 @@ BOOL UsbDeviceList::AttachDevice(
 		return FALSE;
 	}
 
-	// Try to release any interfaces that match our filters (if we have any)
-	if (mNumInterfaceFilters > 0) {
-		bool failedToAttach = false;
+	// Release any interfaces matching filters
+	if (filterMatches) {
+		// Try to release any interfaces that match our filters (if we have any)
+		BOOL failedToAttach = FALSE;
+		BOOL attachSuccesful = FALSE;
 		for (DWORD i = 0; i < device->lpActiveConfig->dwNumInterfaces && !failedToAttach; i++) {
-			DWORD index;
-			if (FindFilterForInterface(device, &device->lpActiveConfig->lpInterfaces[i], &index)) {
+			if (filters.Get(i) < mNumInterfaceFilters) {
 				UCHAR bInterfaceNumber = device->lpActiveConfig->lpInterfaces[i].Descriptor.bInterfaceNumber;
-				IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Interface %i matches filter %s")
-					TEXT(", attaching kernel driver\r\n"), bInterfaceNumber, mInterfaceFilters[index].name));
-				if (!ptr.get()->AttachKernelDriverForInterface(bInterfaceNumber)) {
-					failedToAttach = true;
+				IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Interface %u matches filter %s")
+					TEXT(", attaching kernel driver\r\n"), bInterfaceNumber, mInterfaceFilters[filters.Get(i)].name));
+				if (ptr.get()->AttachKernelDriverForInterface(bInterfaceNumber)) {
+					attachSuccesful = TRUE;
+				} else if (!attachSuccesful) {
+					// Only resort to finding a driver for the entire device, if we have
+					// not already attached drivers to other interfaces.
+					failedToAttach = TRUE;
 				}
 			}
 		}
@@ -366,14 +440,13 @@ BOOL UsbDeviceList::AttachDevice(
 			IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Attaching kernel driver for entire device\r\n")));
 			if (!ptr.get()->AttachKernelDriverForDevice()) {
 				// There really is no other driver willing to control this device!
-				IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Unable to attach kernel driver for entire "),
-					TEXT("device (error %i), retaining control\r\n"), GetLastError()));
+				IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Unable to attach kernel driver for entire ")
+					TEXT("device (error %u), retaining control\r\n"), GetLastError()));
 			}
 		}
 	}
 
 	ptr.release();
-	*fAcceptControl = TRUE;
 	return TRUE;
 }
 
