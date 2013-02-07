@@ -352,7 +352,7 @@ BOOL UsbDeviceList::AttachDevice(
 	BOOL filterMatches = FALSE;
 	ArrayAutoPtr<DWORD> filters;
 	if (!lpInterface && mNumInterfaceFilters > 0) {
-		filters = ArrayAutoPtr<DWORD>(new (std::nothrow) DWORD[device->lpActiveConfig->dwNumInterfaces]);
+		filters = new (std::nothrow) DWORD[device->lpActiveConfig->dwNumInterfaces];
 		if (!filters.Get()) {
 			ERROR_MSG((TEXT("USBKWrapperDrv!UsbDeviceList::AttachDevice")
 				TEXT(" - out of memory allocating filter match list")));
@@ -363,7 +363,7 @@ BOOL UsbDeviceList::AttachDevice(
 		for (DWORD i = 0; i < device->lpActiveConfig->dwNumInterfaces && *fAcceptControl; i++) {
 			DWORD index;
 			if (FindFilterForInterface(device, &device->lpActiveConfig->lpInterfaces[i], &index)) {
-				filters.Get(i) = index;
+				filters.Set(i, index);
 				filterMatches = TRUE;
 
 				if (mInterfaceFilters[index].noAttach) {
@@ -374,7 +374,7 @@ BOOL UsbDeviceList::AttachDevice(
 					*fAcceptControl = FALSE;
 				}
 			} else {
-				filters.Get(i) = mNumInterfaceFilters;
+				filters.Set(i, mNumInterfaceFilters);
 			}
 		}
 	}
