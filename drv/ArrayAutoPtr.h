@@ -24,11 +24,11 @@
 template <typename T> class ArrayAutoPtr {
 public:
 	ArrayAutoPtr(T* ptr=NULL);
-	ArrayAutoPtr(const ArrayAutoPtr<T>& autoPtr);
+	ArrayAutoPtr(ArrayAutoPtr<T>& autoPtr);
 	~ArrayAutoPtr();
 
 	ArrayAutoPtr<T>& operator=(T* ptr);
-	ArrayAutoPtr<T>& operator=(const ArrayAutoPtr<T>& autoPtr);
+	ArrayAutoPtr<T>& operator=(ArrayAutoPtr<T>& autoPtr);
 
 	T* Get();
 	const T& Get(size_t i);
@@ -48,7 +48,7 @@ ArrayAutoPtr<T>::ArrayAutoPtr(T* ptr)
 }
 
 template <typename T>
-ArrayAutoPtr<T>::ArrayAutoPtr(const ArrayAutoPtr<T>& autoPtr)
+ArrayAutoPtr<T>::ArrayAutoPtr(ArrayAutoPtr<T>& autoPtr)
 	: mPtr(autoPtr.mPtr)
 {
 	autPtr.Release();
@@ -68,7 +68,7 @@ ArrayAutoPtr<T>& ArrayAutoPtr<T>::operator=(T* ptr)
 }
 
 template <typename T>
-ArrayAutoPtr<T>& ArrayAutoPtr<T>::operator=(const ArrayAutoPtr& autoPtr)
+ArrayAutoPtr<T>& ArrayAutoPtr<T>::operator=(ArrayAutoPtr& autoPtr)
 {
 	mPtr = autoPtr.mPtr;
 	autoPtr.Release();
