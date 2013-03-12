@@ -120,3 +120,8 @@
 ; VID = 0x0bb4
 [HKEY_LOCAL_MACHINE\Drivers\USB\LoadClients\2996\Default\Default\Usb_Kernel_Wrapper]
   "Dll"    = "ceusbkwrapperdrv.dll"
+
+; Match all PLX devices
+; VID = 0x0525
+[HKEY_LOCAL_MACHINE\Drivers\USB\LoadClients\1317\Default\Default\Usb_Kernel_Wrapper]
+  "Dll"    = "ceusbkwrapperdrv.dll"
