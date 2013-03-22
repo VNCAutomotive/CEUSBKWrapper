@@ -54,7 +54,8 @@ The following features are currently supported by CEUSBKWrapper:
 
 Currently, CEUSBKWrapper requires Windows CE 6.0 or later. This is routinely
 tested on the Freescale i.MX51 EVK board, using Freescale's April 2011 Windows
-CE 6.0 Board Support Package.
+CE 6.0 Board Support Package. Prototype support has also been added for Windows
+CE 5.0, but this is not routinely tested.
 
 
 3. Build and Installation

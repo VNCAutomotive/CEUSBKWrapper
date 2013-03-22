@@ -51,6 +51,8 @@ private:
 	const LPVOID mlpSrcUnmarshalled;
 	const DWORD mSize;
 	const BOOL mAsync;
+	/* For WinCE > 6 this is the marshalled type information.
+     * For WinCE < 6 this is the calling thread permissions. */
 	const DWORD mArgDesc;
 	LPVOID mlpSyncMarshalled;
 	LPVOID mlpAsyncMarshalled;

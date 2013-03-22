@@ -26,6 +26,9 @@
 #include <ceddk.h>
 #include <memory>
 
+#if _WIN32_WCE >= 0x600
+/* WinCE 6 and beyond support */
+
 template<typename T>
 UserBuffer<T>::UserBuffer(
 		DWORD dwAccessFlags,
@@ -83,30 +86,6 @@ UserBuffer<T>::~UserBuffer()
 }
 
 template<typename T>
-BOOL UserBuffer<T>::Valid() const
-{
-	return mSize == 0 ||
-		!mlpSrcUnmarshalled ||
-		(mlpAsyncMarshalled && mAsync) ||
-		(mlpSyncMarshalled && !mAsync);
-}
-
-template<typename T>
-T UserBuffer<T>::UserPtr()
-{
-	return static_cast<T>(mlpSrcUnmarshalled);
-}
-
-template<typename T>
-T UserBuffer<T>::Ptr()
-{
-	return static_cast<T>(
-		mAsync ? 
-		mlpAsyncMarshalled :
-		mlpSyncMarshalled);
-}
-
-template<typename T>
 BOOL UserBuffer<T>::Flush()
 {
 	if (mSize == 0) {
@@ -123,12 +102,6 @@ BOOL UserBuffer<T>::Flush()
 			r));
 	}
 	return SUCCEEDED(r);
-}
-
-template<typename T>
-DWORD UserBuffer<T>::Size()
-{
-	return mSize;
 }
 
 template<typename T>
@@ -171,11 +144,6 @@ DWORD UserBuffer<LPDWORD>::ArgDescFromAccessFlags(DWORD dwAccessFlags)
 	return ret;
 }
 
-// Create versions of UserBuffer for supported types
-template class UserBuffer<LPVOID>;
-template class UserBuffer<LPDWORD>;
-template class UserBuffer<LPOVERLAPPED>;
-
 OverlappedUserBuffer::OverlappedUserBuffer(LPOVERLAPPED lpOverlapped)
 : UserBuffer<LPOVERLAPPED>(UBA_WRITE | UBA_ASYNC, lpOverlapped, sizeof(OVERLAPPED))
 , mhEvent(INVALID_HANDLE_VALUE)
@@ -196,6 +164,145 @@ OverlappedUserBuffer::OverlappedUserBuffer(LPOVERLAPPED lpOverlapped)
 	// Write the changes back to userspace
 	Flush();
 }
+
+#else /* _WIN32_WCE >= 0x600 */
+/* WinCE 5 and below support */
+
+template<typename T>
+UserBuffer<T>::UserBuffer(
+		DWORD dwAccessFlags,
+		T lpSrcUnmarshalled,
+		DWORD dwSize)
+: mlpSrcUnmarshalled(lpSrcUnmarshalled)
+, mSize(dwSize)
+, mAsync((dwAccessFlags & UBA_ASYNC) == UBA_ASYNC)
+, mArgDesc(ArgDescFromAccessFlags(dwAccessFlags))
+, mlpSyncMarshalled(NULL)
+, mlpAsyncMarshalled(NULL)
+{
+	if (!mlpSrcUnmarshalled)
+		return;
+	if (mSize == 0)
+		return;
+	mlpSyncMarshalled = MapCallerPtr(lpSrcUnmarshalled, mSize);
+	if (!mlpSyncMarshalled) {
+		ERROR_MSG((TEXT("USBKWrapperDrv!UserBuffer::UserBuffer() failed to map caller buffer 0x%08x\r\n"),
+			lpSrcUnmarshalled));
+		mlpSyncMarshalled = NULL;
+	}
+	if (mlpSyncMarshalled != NULL && mAsync) {
+		mlpAsyncMarshalled = malloc(mSize);
+		if (!mlpAsyncMarshalled) {
+			ERROR_MSG((TEXT("USBKWrapperDrv!UserBuffer::UserBuffer() failed to alloc async buffer 0x%08x\r\n"),
+				lpSrcUnmarshalled));
+			mlpAsyncMarshalled = NULL;
+		} else {
+			/* MapCallerPtr has checked that this is a valid user space region. */
+			memcpy(mlpAsyncMarshalled, mlpSyncMarshalled, mSize);
+		}
+	}
+}
+
+template<typename T>
+UserBuffer<T>::~UserBuffer()
+{
+	if (mlpAsyncMarshalled != NULL) {
+		free(mlpAsyncMarshalled);
+		mlpAsyncMarshalled = NULL;
+	}
+}
+
+
+template<typename T>
+BOOL UserBuffer<T>::Flush()
+{
+	if (mSize == 0) {
+		return TRUE;
+	}
+	if (mlpAsyncMarshalled == NULL) {
+		return !mAsync;
+	}
+	/* Switch back to the callers permissions and then memcpy the data back */
+	const DWORD oldPermissions = SetProcPermissions(mArgDesc);
+	memcpy(mlpSyncMarshalled, mlpAsyncMarshalled, mSize);
+	DWORD argDesc = SetProcPermissions(oldPermissions);
+	BOOL ret = TRUE;
+	if (argDesc != mArgDesc) {
+		ERROR_MSG((TEXT("USBKWrapperDrv!UserBuffer::Flush failed to flush async buffer %d != %d\r\n"),
+			argDesc, mArgDesc));
+		ret = FALSE;
+	}
+	return ret;
+}
+
+template<typename T>
+DWORD UserBuffer<T>::ArgDescFromAccessFlags(DWORD dwAccessFlags)
+{
+	return GetCurrentPermissions();
+}
+
+OverlappedUserBuffer::OverlappedUserBuffer(LPOVERLAPPED lpOverlapped)
+: UserBuffer<LPOVERLAPPED>(UBA_WRITE | UBA_ASYNC, lpOverlapped, sizeof(OVERLAPPED))
+, mhEvent(INVALID_HANDLE_VALUE)
+, mCompleted(FALSE)
+{
+	if (!Valid() || Ptr() == NULL)
+		return;
+	/* Need to duplicate the handle into kernel space */
+	BOOL success = DuplicateHandle(
+		GetOwnerProcess(), operator->().hEvent,
+		GetCurrentProcess(), &mhEvent,
+		0, FALSE, DUPLICATE_SAME_ACCESS);
+	if (!success) {
+		ERROR_MSG((TEXT("USBKWrapperDrv!OverlappedUserBuffer::OverlappedUserBuffer failed to duplicate handle\r\n")));
+		mhEvent = INVALID_HANDLE_VALUE;
+		return;
+	}
+	// Set the status as pending
+	operator->().Internal = STATUS_PENDING;
+	operator->().InternalHigh = 0;
+	// Write the changes back to userspace
+	Flush();
+}
+
+
+#endif /* _WIN32_WCE >= 0x600 */
+/* Generic functions common to any WinCE version */
+
+template<typename T>
+BOOL UserBuffer<T>::Valid() const
+{
+	return mSize == 0 ||
+		!mlpSrcUnmarshalled ||
+		(mlpAsyncMarshalled && mAsync) ||
+		(mlpSyncMarshalled && !mAsync);
+}
+
+template<typename T>
+T UserBuffer<T>::UserPtr()
+{
+	return static_cast<T>(mlpSrcUnmarshalled);
+}
+
+template<typename T>
+T UserBuffer<T>::Ptr()
+{
+	return static_cast<T>(
+		mAsync ? 
+		mlpAsyncMarshalled :
+		mlpSyncMarshalled);
+}
+
+template<typename T>
+DWORD UserBuffer<T>::Size()
+{
+	return mSize;
+}
+
+// Create versions of UserBuffer for supported types
+template class UserBuffer<LPVOID>;
+template class UserBuffer<LPDWORD>;
+template class UserBuffer<LPOVERLAPPED>;
 
 OverlappedUserBuffer::~OverlappedUserBuffer()
 {
