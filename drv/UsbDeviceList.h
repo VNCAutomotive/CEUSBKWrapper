@@ -40,6 +40,9 @@ typedef struct {
 	// Filter name
 	LPWSTR name;
 
+	// Filter priority (MAXDWORD means lowest / no priority)
+	DWORD priority;
+
 	// Field values
 	INTERFACE_FILTER_FIELD bInterfaceClass;
 	INTERFACE_FILTER_FIELD bInterfaceSubClass;
@@ -52,6 +55,13 @@ typedef struct {
 
 } INTERFACE_FILTER, *PINTERFACE_FILTER, *LPINTERFACE_FILTER;
 typedef const LPINTERFACE_FILTER LPCINTERFACE_FILTER;
+
+typedef struct FilterNode {
+	INTERFACE_FILTER filter;
+	struct FilterNode* next;
+
+} FILTER_NODE, *PFILTER_NODE, *LPFILTER_NODE;
+typedef const LPFILTER_NODE LPCFILTER_NODE;
 
 class UsbDeviceList {
 public:
@@ -82,7 +92,11 @@ private:
 	~UsbDeviceList();
 	BOOL Init();
 
-	LONG FindNextInterfaceFilterField(LPCWSTR str, DWORD offset, LPDWORD nextOffset, LPINTERFACE_FILTER_FIELD field);
+	inline void FillInFilterField(INTERFACE_FILTER_FIELD& field,
+					DWORD value,
+					BOOL matchAll,
+					BOOL invert);
+	BOOL ParseFilterString(INTERFACE_FILTER& filter, LPCWSTR str);
 
 	void LogFilterField(LPCWSTR name, LPCINTERFACE_FILTER_FIELD field);
 	void LogFilterFlag(LPCWSTR name, BOOL flag);
@@ -94,7 +108,7 @@ private:
 	// These should be called with mMutex held
 	void FetchInterfaceFilters(LPCUSB_FUNCS lpUsbFuncs, LPCWSTR szUniqueDriverId);
 	BOOL MatchFilterField(BOOL doComparison, DWORD value, LPCINTERFACE_FILTER_FIELD field);
-	BOOL FindFilterForInterface(LPCUSB_DEVICE lpDevice, LPCUSB_INTERFACE lpInterface, LPDWORD index);
+	BOOL FindFilterForInterface(LPCUSB_DEVICE lpDevice, LPCUSB_INTERFACE lpInterface, LPINTERFACE_FILTER* index);
 	void AddInterfaceFilter(LPCWSTR name, LPCWSTR value);
 
 private:
@@ -103,8 +117,21 @@ private:
 	HANDLE mMutex;
 	PtrArray<UsbDevice> mDevices;
 	BusAllocator mBusAllocator;
-	INTERFACE_FILTER* mInterfaceFilters;
-	DWORD mNumInterfaceFilters;
+	PFILTER_NODE mInterfaceFilters;
 };
+
+inline void UsbDeviceList::FillInFilterField(INTERFACE_FILTER_FIELD& field,
+                                             DWORD value,
+                                             BOOL matchAll,
+                                             BOOL invert) 
+{
+	field.match = !invert;
+	// Represent matchAll as USB_NO_INFO
+	if (matchAll) {
+		field.value = USB_NO_INFO;
+	} else{
+		field.value = value;
+	}
+}
 
 #endif

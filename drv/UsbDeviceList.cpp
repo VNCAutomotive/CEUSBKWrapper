@@ -51,52 +51,216 @@ void UsbDeviceList::DestroySingleton()
 	mSingleton = NULL;
 }
 
-LONG UsbDeviceList::FindNextInterfaceFilterField(LPCWSTR str, DWORD offset, LPDWORD nextOffset, LPINTERFACE_FILTER_FIELD field)
+BOOL UsbDeviceList::ParseFilterString(INTERFACE_FILTER& filter, LPCWSTR str) 
 {
-	// Initialise field to match-all (*)
-	field->match = TRUE;
-	field->value = USB_NO_INFO;
+	// Parse a filter string, which has the following syntax:
+	//
+	// [priority;]bInterfaceClass:bInterfaceSubClass:bInterfaceProtocol[:idVendor[:idProduct]][;NO_ATTACH]
+	//	
+	// Apart from priority and flag fields, any field can be '*', represent this "dont-care" 
+	// as USB_NO_INFO.
+	// The filter string may optionally start with a priority value, seperated by a
+	// semi-colon. MAXDWORD represents no priority, and is the default.
+	// The filter string may optionally terminate with a series of flags, again 
+	// seperated by a semi-colon. Currently, the only flag supported is NO_ATTACH.
+	//
+	// The INTERFACE_FILTER must already have a valid name.
 
-	(*nextOffset) = offset;
+	// The parsing states
+	typedef enum {
+		ParseStateStart,
+		ParseStateInterfaceClass,
+		ParseStateInterfaceSubClass,
+		ParseStateInterfaceProtocol,
+		ParseStateIdVendor,
+		ParseStateIdProduct,
+		ParseStateFlags,
 
-	for (DWORD i = offset; i <= wcslen(str); i++) {
-		// Field is terminated by ':', ';' or end of string
+		ParseStateEnd
+
+	} ParseState;
+
+	// Set filter defaults
+	filter.priority = MAXDWORD;
+	filter.noAttach = FALSE;
+	FillInFilterField(filter.bInterfaceClass, 0, TRUE, FALSE);
+	FillInFilterField(filter.bInterfaceSubClass, 0, TRUE, FALSE);
+	FillInFilterField(filter.bInterfaceProtocol, 0, TRUE, FALSE);
+	FillInFilterField(filter.idVendor, 0, TRUE, FALSE);
+	FillInFilterField(filter.idProduct, 0, TRUE, FALSE);
+
+	ParseState parseState = ParseStateStart;
+	DWORD offset = 0;
+	BOOL result = TRUE;
+	for (DWORD i = 0; i <= wcslen(str) && result; i++) {
+		// Each field is terminated by ':', ';' or end of string
+		// No field may be empty
 		if (str[i] == ':' || str[i] == ';' || str[i] == '\0') {
-			// Represent ';' as reaching end of string (only flags occur after 
-			// this seperator)
-			if (str[i] == ';') {
-				(*nextOffset) = wcslen(str) + 1;
-			} else {
-				(*nextOffset) = i + 1;
-			}
-			LONG result = ERROR_SUCCESS;
+			DWORD parseValue;
+			BOOL parseMatchAll = FALSE;
+			BOOL parseInvert = FALSE;
 
-			// Empty fields are disallowed
-			// Fields may contain '*' or a base 10 value (possibly prepended with '!'
-			// to invert match).
-			if (i == offset) {
-				// Invalid (empty field)
-				result = ERROR_INVALID_PARAMETER;
-			} else if (!(i == offset + 1 && str[offset] == '*')) {
-				// Field contains base 10 value
-				wchar_t* endptr = NULL;
-				if (str[offset] == '!') {
-					field->match = FALSE;
-					offset++;
-				}
-				field->value = wcstol(&str[offset], &endptr, 10);
-				if (endptr == &str[offset] || 
-					(endptr[0] != ':' && endptr[0] != ';' && endptr[0] != '\0')) {
-					result = ERROR_INVALID_PARAMETER;
+			if (i == offset || (i == offset + 1 && str[offset] == '!')) {
+				// Empty or malformed field
+				ERROR_MSG((TEXT("USBKWrapperDrv: Empty or malformed field in interface filter %s:%u\r\n"), 
+					filter.name, offset));
+				result = FALSE;
+				break;
+			} else if (parseState < ParseStateFlags) {
+				// Parse the numeric field generically.
+				if (i == offset + 1 && str[offset] == '*') {
+					parseMatchAll = TRUE;
+				} else {
+					wchar_t* endptr = NULL;
+					if (str[offset] == '!') {
+						parseInvert = TRUE;
+						++offset;
+					}
+					parseValue = wcstol(&str[offset], &endptr, 10);
+					if (endptr != &str[i]) {
+						ERROR_MSG((TEXT("USBKWrapperDrv: Invalid field value in interface filter %s:%u\r\n"), 
+							filter.name, offset));
+						result = FALSE;
+						break;
+					}
 				}
 			}
-			return result;
+
+			// Now interpret the field depending on what stage we're at
+			switch (parseState) {
+				/** Numeric fields **/
+
+				case ParseStateStart:
+					// If token is ';', then parse optional priority field.
+					// '*' and '!' operators are not valid for this field.
+					// Otherwise, drop through and parse interface class field.
+					if (str[i] == ';') {
+						if (!parseMatchAll && !parseInvert) {
+							filter.priority = parseValue;
+							parseState = ParseStateInterfaceClass;
+						} else {
+							ERROR_MSG((TEXT("USBKWrapperDrv: Invalid priority value in interface filter %s:%u\r\n"), 
+								filter.name, offset));
+							result = FALSE;
+						}
+						break;
+					}
+					// Deliberate fall-through if token is not ';'
+
+				case ParseStateInterfaceClass:
+					FillInFilterField(filter.bInterfaceClass, 
+								parseValue, 
+								parseMatchAll, 
+								parseInvert);
+
+					// Check for required token
+					if (str[i] == ':') {
+						parseState = ParseStateInterfaceSubClass;
+					} else {
+						ERROR_MSG((TEXT("USBKWrapperDrv: Expected ':' in interface filter %s:%u\r\n"),
+							filter.name, i));
+						result = FALSE;
+					}
+					break;
+
+				case ParseStateInterfaceSubClass:
+					FillInFilterField(filter.bInterfaceSubClass, 
+								parseValue, 
+								parseMatchAll, 
+								parseInvert);
+
+					// Check for required token
+					if (str[i] == ':') {
+						parseState = ParseStateInterfaceProtocol;
+					} else {
+						ERROR_MSG((TEXT("USBKWrapperDrv: Expected ':' in interface filter %s:%u\r\n"),
+							filter.name, i));
+						result = FALSE;
+					}
+					break;
+
+				case ParseStateInterfaceProtocol:
+					FillInFilterField(filter.bInterfaceProtocol, 
+								parseValue, 
+								parseMatchAll, 
+								parseInvert);
+
+					// Transition state based on token
+					if (str[i] == ':') {
+						parseState = ParseStateIdVendor;
+					} else if (str[i] == ';') {
+						parseState = ParseStateFlags;
+					} else {
+						parseState = ParseStateEnd;
+					}
+					break;
+
+				case ParseStateIdVendor:
+					FillInFilterField(filter.idVendor, 
+								parseValue,
+								parseMatchAll, 
+								parseInvert);
+
+					// Transition state based on token
+					if (str[i] == ':') {
+						parseState = ParseStateIdProduct;
+					} else if (str[i] == ';') {
+						parseState = ParseStateFlags;
+					} else if (str[i] == '\0') {
+						parseState = ParseStateEnd;
+					}
+					break;
+
+				case ParseStateIdProduct:
+					FillInFilterField(filter.idProduct, 
+								parseValue, 
+								parseMatchAll, 
+								parseInvert);
+
+					// Transition state based on token
+					if (str[i] == ';') {
+						parseState = ParseStateFlags;
+					} else if (str[i] == '\0') {
+						parseState = ParseStateEnd;
+					} else {
+						ERROR_MSG((TEXT("USBKWrapperDrv: Expected ';' or end of string in interface filter %s:%u\r\n"),
+							filter.name, i));
+						result = FALSE;
+					}
+					break;
+
+				/** Optional (and non-numeric) flags **/
+
+				case ParseStateFlags:
+					// Parse the next flag
+					// At the moment, we only support NO_ATTACH
+					if (wcslen(&str[offset]) >= 9 && wcsncmp(&str[offset], L"NO_ATTACH", 9) == 0) {
+						filter.noAttach = TRUE;
+					} else {
+						// Unrecognised flag
+						ERROR_MSG((TEXT("USBKWrapperDrv: Unrecognised flag in interface filter %s:%u\r\n"),
+							filter.name, offset));
+						result = FALSE;
+					}
+
+					// Transition state based on token
+					if (result) {
+						if (str[i] == '\0') {
+							parseState = ParseStateEnd;
+						} else if (str[i] != ';') {
+							ERROR_MSG((TEXT("USBKWrapperDrv: Expected ';' or end of string in interface filter %s:%u\r\n"),
+								filter.name, i));
+							result = FALSE;
+						}
+					}
+					break;
+			}
+
+			// Update offset for start of next field
+			offset = i + 1;
 		}
 	}
-
-	// Offset beyond end of string (this may occur if we're looking
-	// for optional fields that are not present).
-	return ERROR_INVALID_PARAMETER;
+	return result;
 }
 
 void UsbDeviceList::LogFilterField(LPCWSTR name, LPCINTERFACE_FILTER_FIELD field)
@@ -121,6 +285,12 @@ void UsbDeviceList::LogFilterFlag(LPCWSTR name, BOOL flag)
 void UsbDeviceList::LogFilter(LPCWSTR message, LPCINTERFACE_FILTER filter)
 {
 	IFACEFILTER_MSG((TEXT("%s %s:\r\n"), message, filter->name));
+	if (filter->priority == MAXDWORD) {
+		IFACEFILTER_MSG((TEXT("USBKWrapperDrv:     priority: <none>\r\n")));
+	} else {
+		IFACEFILTER_MSG((TEXT("USBKWrapperDrv:     priority:  %u\r\n"), filter->priority));
+	}
+
 	LogFilterField(TEXT("bInterfaceClass"), &filter->bInterfaceClass);
 	LogFilterField(TEXT("bInterfaceSubClass"), &filter->bInterfaceSubClass);
 	LogFilterField(TEXT("bInterfaceProtocol"), &filter->bInterfaceProtocol);
@@ -133,63 +303,55 @@ void UsbDeviceList::LogFilter(LPCWSTR message, LPCINTERFACE_FILTER filter)
 void UsbDeviceList::AddInterfaceFilter(LPCWSTR name, LPCWSTR value)
 {
 	// Filter name must be unique
-	for (DWORD i = 0; i < mNumInterfaceFilters; i++) {
-		if (wcscmp(name, mInterfaceFilters[i].name) == 0) {
+	PFILTER_NODE next = mInterfaceFilters;
+	while (next) {
+		if (wcscmp(name, next->filter.name) == 0) {
 			IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Ignoring duplicate interface filter %s\r\n"), name));
 			return;
 		}
+		next = next->next;
 	}
 
-	// Parse filter string "bInterfaceClass:bInterfaceSubclass:bInterfaceProtocol"
-	// Any field can be '*', represent this "dont-care" as USB_NO_INFO.
-	INTERFACE_FILTER_FIELD bInterfaceClass, bInterfaceSubClass, bInterfaceProtocol;
-	DWORD nextOffset, result;
+	// Prepare new filter
+	PFILTER_NODE newFilter = new (std::nothrow) FILTER_NODE;
+	if (!newFilter) {
+		ERROR_MSG((TEXT("USBKWrapperDrv!UsbDeviceList::AddInterfaceFilter() - Out of memory allocating new filter node\r\n")));
+		return;
+	}
+	newFilter->filter.name = new (std::nothrow) WCHAR[wcslen(name) + 1];
+	if (!newFilter->filter.name) {
+		ERROR_MSG((TEXT("USBKWrapperDrv!UsbDeviceList::AddInterfaceFilter() - Out of memory allocating filter name\r\n")));
+		delete newFilter;
+		return;
+	}
+	wcscpy(newFilter->filter.name, name);
 
-	result = FindNextInterfaceFilterField(value, 0, &nextOffset, &bInterfaceClass);
-	result |= FindNextInterfaceFilterField(value, nextOffset, &nextOffset, &bInterfaceSubClass);
-	result |= FindNextInterfaceFilterField(value, nextOffset, &nextOffset, &bInterfaceProtocol);
-	if (result) {
-		IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Parse error for interface filter %s: %s\r\n"), name, value));
+	// Parse filter string
+	if (!ParseFilterString(newFilter->filter, value)) {
+		IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Discarding invalid interface filter %s: %s\r\n"), name, value));
+		// Destroy filter
+		delete[] newFilter->filter.name;
+		delete newFilter;
 		return;		
 	}
 
-	// Now check for optional idVendor/idProduct fields (initialised by FindNextInterfaceFilterToken())
-	INTERFACE_FILTER_FIELD idVendor, idProduct;
-	FindNextInterfaceFilterField(value, nextOffset, &nextOffset, &idVendor);
-	FindNextInterfaceFilterField(value, nextOffset, &nextOffset, &idProduct);
-
-	PWCHAR filterName = (PWCHAR) malloc(sizeof(WCHAR)*(wcslen(name)+1));;
-	if (!filterName) {
-		ERROR_MSG((TEXT("USBKWrapperDrv!UsbDeviceList::AddInterfaceFilter() - Out of memory allocating filter name\r\n")));
-		return;
+	// Insert filter into the correct position in the list (dependent on priority)
+	if (!mInterfaceFilters || newFilter->filter.priority <= mInterfaceFilters->filter.priority) {
+		// Insert at the head
+		newFilter->next = mInterfaceFilters;
+		mInterfaceFilters = newFilter;
+	} else {
+		next = mInterfaceFilters;
+		while (next) {
+			if (!next->next || newFilter->filter.priority <= next->next->filter.priority) {
+				// Insert after this element (which may be the tail)
+				newFilter->next = next->next;
+				next->next = newFilter;
+				break;
+			}
+			next = next->next;
+		}
 	}
-	wcscpy(filterName, name);
-
-	// Finally, check for any optional flags (we can switch to a more advanced
-	// flag parsing strategy if and when we add more flags in the future).
-	BOOL noAttach = FALSE;
-	if (wcsstr(value, L";NO_ATTACH") != NULL) {
-		noAttach = TRUE;
-	}
-
-	INTERFACE_FILTER* newFilterList = (INTERFACE_FILTER*) realloc(mInterfaceFilters, sizeof(INTERFACE_FILTER)*(mNumInterfaceFilters+1));
-	if (!newFilterList) {
-		ERROR_MSG((TEXT("USBKWrapperDrv!UsbDeviceList::AddInterfaceFilter() - Out of memory reallocating filter list\r\n")));
-		free(filterName);
-		return;
-	}
-
-	// Append filter to list
-	mInterfaceFilters = newFilterList;
-	mInterfaceFilters[mNumInterfaceFilters].name = filterName;
-	mInterfaceFilters[mNumInterfaceFilters].bInterfaceClass = bInterfaceClass;
-	mInterfaceFilters[mNumInterfaceFilters].bInterfaceSubClass = bInterfaceSubClass;
-	mInterfaceFilters[mNumInterfaceFilters].bInterfaceProtocol = bInterfaceProtocol;
-	mInterfaceFilters[mNumInterfaceFilters].idVendor = idVendor;
-	mInterfaceFilters[mNumInterfaceFilters].idProduct = idProduct;
-	mInterfaceFilters[mNumInterfaceFilters].noAttach = noAttach;
-	LogFilter(TEXT("USBKWrapperDrv: Added interface filter"), &mInterfaceFilters[mNumInterfaceFilters]);		
-	mNumInterfaceFilters++;
 }
 
 void UsbDeviceList::FetchInterfaceFilters(LPCUSB_FUNCS lpUsbFuncs,
@@ -203,7 +365,7 @@ void UsbDeviceList::FetchInterfaceFilters(LPCUSB_FUNCS lpUsbFuncs,
 	PBYTE valueBuf;
 
 	// We do not support dynamic updating of the filter list
-	if (mNumInterfaceFilters > 0) {
+	if (mInterfaceFilters) {
 		return;
 	}
 	
@@ -248,6 +410,13 @@ void UsbDeviceList::FetchInterfaceFilters(LPCUSB_FUNCS lpUsbFuncs,
 		}
 	}
 
+	// Log out the interface filters we have, in priority order
+	PFILTER_NODE next = mInterfaceFilters;
+	while(next) {
+		LogFilter(TEXT("USBKWrapperDrv: Added interface filter"), &next->filter);
+		next = next->next;
+	}
+
 	delete[] nameBuf;
 	delete[] valueBuf;
 	RegCloseKey(key);
@@ -255,12 +424,14 @@ void UsbDeviceList::FetchInterfaceFilters(LPCUSB_FUNCS lpUsbFuncs,
 
 void UsbDeviceList::DestroyInterfaceFilters()
 {
-	for (DWORD i = 0; i < mNumInterfaceFilters; i++) {
-		free(mInterfaceFilters[i].name);
+	PFILTER_NODE next = mInterfaceFilters;
+	while (next) {
+		PFILTER_NODE del = next;
+		next = del->next;
+		delete[] del->filter.name;
+		delete del;
 	}
-	free(mInterfaceFilters);
 	mInterfaceFilters = NULL;
-	mNumInterfaceFilters = 0;
 }
 
 BOOL UsbDeviceList::MatchFilterField(BOOL doComparison, DWORD value, LPCINTERFACE_FILTER_FIELD field)
@@ -276,19 +447,23 @@ BOOL UsbDeviceList::MatchFilterField(BOOL doComparison, DWORD value, LPCINTERFAC
 	}
 }
 
-BOOL UsbDeviceList::FindFilterForInterface(LPCUSB_DEVICE lpDevice, LPCUSB_INTERFACE lpInterface, LPDWORD index)
+BOOL UsbDeviceList::FindFilterForInterface(LPCUSB_DEVICE lpDevice, LPCUSB_INTERFACE lpInterface, LPINTERFACE_FILTER* filter)
 {
-	for (DWORD i = 0; i < mNumInterfaceFilters; i++) {
-		BOOL match = MatchFilterField(true, lpInterface->Descriptor.bInterfaceClass, &mInterfaceFilters[i].bInterfaceClass);
-		match &= MatchFilterField(match, lpInterface->Descriptor.bInterfaceSubClass, &mInterfaceFilters[i].bInterfaceSubClass);
-		match &= MatchFilterField(match, lpInterface->Descriptor.bInterfaceProtocol, &mInterfaceFilters[i].bInterfaceProtocol);
-		match &= MatchFilterField(match, lpDevice->Descriptor.idVendor, &mInterfaceFilters[i].idVendor);
-		match &= MatchFilterField(match, lpDevice->Descriptor.idProduct, &mInterfaceFilters[i].idProduct);
+	// Filter list is maintained in priority order
+	PFILTER_NODE next = mInterfaceFilters;
+	while (next) {
+		BOOL match = MatchFilterField(true, lpInterface->Descriptor.bInterfaceClass, &next->filter.bInterfaceClass);
+		match &= MatchFilterField(match, lpInterface->Descriptor.bInterfaceSubClass, &next->filter.bInterfaceSubClass);
+		match &= MatchFilterField(match, lpInterface->Descriptor.bInterfaceProtocol, &next->filter.bInterfaceProtocol);
+		match &= MatchFilterField(match, lpDevice->Descriptor.idVendor, &next->filter.idVendor);
+		match &= MatchFilterField(match, lpDevice->Descriptor.idProduct, &next->filter.idProduct);
 
 		if (match) {
-			(*index) = i;
+			(*filter) = &next->filter;
 			return TRUE;
 		}
+
+		next = next->next;
 	}
 
 	// No match
@@ -326,10 +501,10 @@ BOOL UsbDeviceList::AttachDevice(
 	// in our filter list. Else, if we're attaching for a device only then refuse if
 	// we are already attached (we may be trying to find other drivers).
 	if (lpInterface) {
-		DWORD index;
-		if (FindFilterForInterface(device, lpInterface, &index)) {
+		PINTERFACE_FILTER filter;
+		if (FindFilterForInterface(device, lpInterface, &filter)) {
 			IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Interface %i matches filter %s, not attaching\r\n"), 
-				lpInterface->Descriptor.bInterfaceNumber, mInterfaceFilters[index].name));
+				lpInterface->Descriptor.bInterfaceNumber, filter->name));
 			(*fAcceptControl) = FALSE;
 			return FALSE;
 		}
@@ -350,9 +525,9 @@ BOOL UsbDeviceList::AttachDevice(
 	// of the device. We only match one filter to an interface. If multiple 
 	// filters match, only the first shall be used.
 	BOOL filterMatches = FALSE;
-	ArrayAutoPtr<DWORD> filters;
-	if (!lpInterface && mNumInterfaceFilters > 0) {
-		filters = new (std::nothrow) DWORD[device->lpActiveConfig->dwNumInterfaces];
+	ArrayAutoPtr<PINTERFACE_FILTER> filters;
+	if (!lpInterface && mInterfaceFilters) {
+		filters = new (std::nothrow) PINTERFACE_FILTER[device->lpActiveConfig->dwNumInterfaces];
 		if (!filters.Get()) {
 			ERROR_MSG((TEXT("USBKWrapperDrv!UsbDeviceList::AttachDevice")
 				TEXT(" - out of memory allocating filter match list")));
@@ -361,20 +536,20 @@ BOOL UsbDeviceList::AttachDevice(
 		}
 
 		for (DWORD i = 0; i < device->lpActiveConfig->dwNumInterfaces && *fAcceptControl; i++) {
-			DWORD index;
-			if (FindFilterForInterface(device, &device->lpActiveConfig->lpInterfaces[i], &index)) {
-				filters.Set(i, index);
+			PINTERFACE_FILTER filter;
+			if (FindFilterForInterface(device, &device->lpActiveConfig->lpInterfaces[i], &filter)) {
+				filters.Set(i, filter);
 				filterMatches = TRUE;
 
-				if (mInterfaceFilters[index].noAttach) {
+				if (filter->noAttach) {
 					IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Interface %u matches filter %s")
 						TEXT(", not accepting device control\r\n"), 
 						device->lpActiveConfig->lpInterfaces[i].Descriptor.bInterfaceNumber, 
-						mInterfaceFilters[index].name));
+						filter->name));
 					*fAcceptControl = FALSE;
 				}
 			} else {
-				filters.Set(i, mNumInterfaceFilters);
+				filters.Set(i, NULL);
 			}
 		}
 	}
@@ -421,10 +596,10 @@ BOOL UsbDeviceList::AttachDevice(
 		BOOL failedToAttach = FALSE;
 		BOOL attachSuccesful = FALSE;
 		for (DWORD i = 0; i < device->lpActiveConfig->dwNumInterfaces && !failedToAttach; i++) {
-			if (filters.Get(i) < mNumInterfaceFilters) {
+			if (filters.Get(i)) {
 				UCHAR bInterfaceNumber = device->lpActiveConfig->lpInterfaces[i].Descriptor.bInterfaceNumber;
 				IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Interface %u matches filter %s")
-					TEXT(", attaching kernel driver\r\n"), bInterfaceNumber, mInterfaceFilters[filters.Get(i)].name));
+					TEXT(", attaching kernel driver\r\n"), bInterfaceNumber, filters.Get(i)->name));
 				if (ptr.get()->AttachKernelDriverForInterface(bInterfaceNumber)) {
 					attachSuccesful = TRUE;
 				} else if (!attachSuccesful) {
@@ -508,8 +683,7 @@ DWORD UsbDeviceList::GetAvailableDevices(UsbDevice** lpDevices, DWORD Size)
 
 UsbDeviceList::UsbDeviceList()
 : mMutex(NULL),
-mInterfaceFilters(NULL),
-mNumInterfaceFilters(0)
+mInterfaceFilters(NULL)
 {
 }
 

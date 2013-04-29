@@ -47,14 +47,14 @@ UserBuffer<T>::UserBuffer(
 		mSize, mArgDesc,
 		((dwAccessFlags & UBA_FORCE_DUPLICATE) == UBA_FORCE_DUPLICATE));
 	if (FAILED(r)) {
-		ERROR_MSG((TEXT("USBKWrapperDrv!UserBuffer::UserBuffer() failed to open caller buffer 0x%08x with error %0x08x\r\n"),
+		ERROR_MSG((TEXT("USBKWrapperDrv!UserBuffer::UserBuffer() failed to open caller buffer 0x%08x with error 0x%08x\r\n"),
 			lpSrcUnmarshalled, r));
 		mlpSyncMarshalled = NULL;
 	}
 	if (mlpSyncMarshalled != NULL && mAsync) {
 		HRESULT r = CeAllocAsynchronousBuffer(&mlpAsyncMarshalled, mlpSyncMarshalled, mSize, mArgDesc);
 		if (FAILED(r)) {
-			ERROR_MSG((TEXT("USBKWrapperDrv!UserBuffer::UserBuffer() failed to alloc async buffer 0x%08x with error %0x08x\r\n"),
+			ERROR_MSG((TEXT("USBKWrapperDrv!UserBuffer::UserBuffer() failed to alloc async buffer 0x%08x with error 0x%08x\r\n"),
 				lpSrcUnmarshalled, r));
 			mlpAsyncMarshalled = NULL;
 		}

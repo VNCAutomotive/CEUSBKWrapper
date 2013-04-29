@@ -37,11 +37,25 @@
 ; However, this driver still reserves the right to send arbitrary 
 ; control requests to the device on the default control pipe.
 ;
+; Once a filter is matched against an interface, no subsequent filters
+; shall be sought for that interface. If an interface would match
+; multiple filters, only the first matching filter to be evaluated is 
+; actioned. The order in which filters are evaluated can be controlled
+; by assigning priorities to the filters. This should be considered if
+; there are multiple matching filters which specify different flags.
+;
 ; Each interface filter is defined as a string whose name is prefixed 
 ; with "InterfaceFilter_". The string specifies a filter in the
 ; following format:
 ;
-; "bInterfaceClass:bInterfaceSubClass:bInterfaceProtocol[:idVendor[:idProduct]][;NO_ATTACH]"
+; "[priority;]bInterfaceClass:bInterfaceSubClass:bInterfaceProtocol[:idVendor[:idProduct]][;NO_ATTACH]"
+;
+; A filter may optionally be prefixed with a priority value, which controls
+; the order in which it is evaluated. Interface filters which specify a
+; priority are always evaluated in priority order, and before filters which 
+; do not specify a priority. The priority element must be an unsigned base 10 
+; value, where the value 0 denotes highest priority. Interface filters with
+; equal priority shall be evaluated in an arbitrary order.
 ;
 ; Each element of the filter may be a base 10 value matching the
 ; corresponding attribute of the USB interface or '*' (always matching
