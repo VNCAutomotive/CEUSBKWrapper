@@ -339,6 +339,11 @@ ceusbkwrapper_API void WINAPI UkwCloseDriver(HANDLE hDriver);
  * been cancelled. If dwFlags is UKW_RF_NO_WAIT then this function
  * will return immediately.
  *
+ * A cancelled transfer may still have sent or received some or all
+ * of the bytes that it was intending to. The number of bytes transferred 
+ * should still be checked for transfers that complete with the status
+ * ERROR_CANCELLED.
+ *
  * \param lpDevice [in] A device retrieved using UkwGetDeviceList()
  * \param lpOverlapped [in] The overlapped structure passed to the transfer to cancel
  * \param dwFlags [in] Either 0 or UKW_TF_NO_WAIT.
@@ -368,7 +373,8 @@ ceusbkwrapper_API BOOL WINAPI UkwCancelTransfer(
  * \param lpHeader [in] An 8 byte control header. See the USB specification for the format.
  * \param lpDataBuffer [in] Pointer to a data buffer.
  * \param dwDataBufferSize [in] Size of the provided data buffer.
- * \param pBytesTransferred [out] Optional parameter which will be set to the number of bytes transferred on success.
+ * \param pBytesTransferred [out] Optional parameter which will be set to the number of bytes transferred,
+ * if the transfer completes successfully or is cancelled.
  * \param lpOverlapped [in] Optional parameter. If specified then request will be asynchronous.
  * \return TRUE on success, or FALSE on failure.
  */
@@ -400,7 +406,8 @@ ceusbkwrapper_API BOOL WINAPI UkwIssueControlTransfer(
  * \param Endpoint [in] The endpoint to send the bulk transfer to.
  * \param lpDataBuffer [in] Pointer to a data buffer.
  * \param dwDataBufferSize [in] Size of the provided data buffer.
- * \param pBytesTransferred [out] Optional parameter which will be set to the number of bytes transferred on success.
+ * \param pBytesTransferred [out] Optional parameter which will be set to the number of bytes transferred,
+ * if the transfer completes successfully or is cancelled.
  * \param lpOverlapped [in] Optional parameter. If specified then request will be asynchronous.
  * \return TRUE on success, or FALSE on failure.
  */

@@ -238,6 +238,8 @@ DWORD Transfer::TranslateError(DWORD dwUsbError, DWORD dwBytesTransferred, BOOL 
 		return ERROR_SUCCESS;
 	case USB_STALL_ERROR:
 		return ERROR_NOT_SUPPORTED;
+	case USB_CANCELED_ERROR:
+		return ERROR_CANCELLED;
 	default:
 		WARN_MSG((TEXT("USBKWrapperDrv!Transfer::TranslateError translating unexpected error %d\r\n"),
 			dwUsbError));
