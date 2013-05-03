@@ -339,6 +339,11 @@ ceusbkwrapper_API void WINAPI UkwCloseDriver(HANDLE hDriver);
  * been cancelled. If dwFlags is UKW_RF_NO_WAIT then this function
  * will return immediately.
  *
+ * If a cancelled transfer has already sent or received bytes over the USB, 
+ * then the transfer will be reported to have completed successfully. The
+ * value written to pBytesTransferred will indicate that the data buffer was 
+ * only partially transmitted or filled.
+ *
  * \param lpDevice [in] A device retrieved using UkwGetDeviceList()
  * \param lpOverlapped [in] The overlapped structure passed to the transfer to cancel
  * \param dwFlags [in] Either 0 or UKW_TF_NO_WAIT.
