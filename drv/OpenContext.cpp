@@ -207,6 +207,14 @@ BOOL OpenContext::StartControlTransfer(LPUKWD_CONTROL_TRANSFER_INFO lpTransferIn
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
 	}
+
+	TRANSFERLIFETIME_MSG((TEXT("USBKWrapperDrv!OpenContext::StartControlTransfer() with ")
+		TEXT("bmRequestType 0x%02x, bRequest 0x%02x, wValue 0x%04x, wIndex 0x%04x, wLength %d, flags 0x%08x and size %d\r\n"),
+		lpTransferInfo->Header.bmRequestType, lpTransferInfo->Header.bRequest, lpTransferInfo->Header.wValue, 
+		lpTransferInfo->Header.wIndex, lpTransferInfo->Header.wLength, lpTransferInfo->dwFlags, 
+		lpTransferInfo->dwDataBufferSize));
+
+	// Construct and start the control transfer
 	ControlTransfer* ct = new (std::nothrow) ControlTransfer(
 			this, dev, lpTransferInfo);
 	if (!ct) {
