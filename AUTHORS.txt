@@ -1,0 +1,7 @@
+(M): Author is also a maintainer of the project.
+
+Simon Haggett <simon.haggett@realvnc.com> (M)
+Toby Gray <toby.gray@realvnc.com> (M)
+
+
+Copyright (C) 2012-2013 RealVNC Ltd.
