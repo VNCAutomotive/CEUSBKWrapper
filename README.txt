@@ -84,7 +84,7 @@ incorporated into the OS design. The ceusbkwrappertest project is optional, and
 is intended for testing and debugging purposes.
 
 To incorporate each project, open the OS design and, in Solution Explorer, find
-the Subprojects node. Right click this, and select "Add Exising Subproject...".
+the Subprojects node. Right click this, and select "Add Existing Subproject...".
 In the Open dialog that appears, navigate to and open the .pbpxml file for the 
 subproject. This should then appear under the Subprojects node in Solution 
 Explorer.
