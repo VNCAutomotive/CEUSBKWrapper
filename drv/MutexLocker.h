@@ -25,8 +25,12 @@ class MutexLocker {
 public:
 	MutexLocker(HANDLE& aMutex);
 	~MutexLocker();
+public:
+	void unlock();
+	void relock();
 private:
 	HANDLE& mMutex;
+	bool mLocked;
 };
 
 #endif // MUTEXLOCKER_H

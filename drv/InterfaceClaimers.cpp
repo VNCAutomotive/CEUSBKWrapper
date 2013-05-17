@@ -84,9 +84,9 @@ DWORD InterfaceClaimers::InterfaceValue() const
 	return mInterfaceValue;
 }
 
-void InterfaceClaimers::SetUnclaimable()
+void InterfaceClaimers::SetClaimable(BOOL claimable)
 {
-	mClaimable = FALSE;
+	mClaimable = claimable;
 }
 
 BOOL InterfaceClaimers::IsClaimable() const

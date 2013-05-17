@@ -49,16 +49,24 @@ class ReadLocker {
 public:
 	ReadLocker(ReadWriteMutex& aMutex);
 	~ReadLocker();
+public:
+	void unlock();
+	void relock();
 private:
 	ReadWriteMutex& mMutex;
+	bool mLocked;
 };
 
 class WriteLocker {
 public:
 	WriteLocker(ReadWriteMutex& aMutex);
 	~WriteLocker();
+public:
+	void unlock();
+	void relock();
 private:
 	ReadWriteMutex& mMutex;
+	bool mLocked;
 };
 
 #endif // MUTEXLOCKER_H

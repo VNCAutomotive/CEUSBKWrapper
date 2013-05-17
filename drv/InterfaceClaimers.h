@@ -31,7 +31,7 @@ public:
 	BOOL Init(const USB_INTERFACE& iface);
 	BOOL AnyClaimed() const;
 	DWORD InterfaceValue() const;
-	void SetUnclaimable();
+	void SetClaimable(BOOL claimable);
 	BOOL IsClaimable() const;
 	BOOL IsClaimed(LPVOID Context) const;
 	BOOL Claim(LPVOID Context, BOOL& IsFirst);

@@ -122,12 +122,15 @@ private:
 	BOOL FetchAllConfigDescriptors();
 	BOOL CopyConfigDescriptor(DWORD dwIndex, UserBuffer<LPVOID>& buffer, LPDWORD lpSize);
 	BOOL AllocateInterfaceClaimers();
+	void SetInterfaceClaimable(UCHAR ifnum, BOOL claimable);
+	void SetAllInterfacesClaimable(BOOL claimable);
 	BOOL CheckKernelDriverActiveForInterface(UCHAR ifnum);
 	BOOL CheckKernelDriverActiveForDevice();
 	USB_PIPE GetPipeForEndpoint(DWORD dwInterface, UCHAR Endpoint);
 	BOOL OpenPipes(InterfaceClaimers& Iface);
 	void ClosePipes(InterfaceClaimers& Iface);
 	void AdvertiseDevice(BOOL isAttached);
+	BOOL DoAttachKernelDriver(WriteLocker& lock, LPCUSB_INTERFACE devIf);
 private:
 	DWORD mRefCount;
 	mutable ReadWriteMutex mCloseMutex; // Mutable to allow locking inside const methods
@@ -142,6 +145,8 @@ private:
 	BOOL mKernelDriverAttached;
 	USBDEVICE_CONFIG_DESCRIPTOR* mConfigDescriptors;
 	UCHAR mNumConfigurations;
+	DWORD mAttachKernelDriverCount;
+	HANDLE mAttachKernelDriverEvent;
 };
 
 #endif USBDEVICE_H

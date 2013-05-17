@@ -104,23 +104,61 @@ void ReadWriteMutex::WriteUnlock()
 }
 
 ReadLocker::ReadLocker(ReadWriteMutex& aMutex)
-: mMutex(aMutex)
+: mMutex(aMutex),
+  mLocked(true)
 {
 	mMutex.ReadLock();
 }
 
 ReadLocker::~ReadLocker()
 {
-	mMutex.ReadUnlock();
+	unlock();
+}
+
+void ReadLocker::unlock()
+{
+	if (mLocked)
+	{
+		mMutex.ReadUnlock();
+		mLocked = false;
+	}
+}
+
+void ReadLocker::relock()
+{
+	if (!mLocked)
+	{
+		mMutex.ReadLock();
+		mLocked = true;
+	}
 }
 
 WriteLocker::WriteLocker(ReadWriteMutex& aMutex)
-: mMutex(aMutex)
+: mMutex(aMutex),
+  mLocked(true)
 {
 	mMutex.WriteLock();
 }
 
 WriteLocker::~WriteLocker()
 {
-	mMutex.WriteUnlock();
+	unlock();
+}
+
+void WriteLocker::unlock()
+{
+	if (mLocked)
+	{
+		mMutex.WriteUnlock();
+		mLocked = false;
+	}
+}
+
+void WriteLocker::relock()
+{
+	if (!mLocked)
+	{
+		mMutex.WriteLock();
+		mLocked = true;
+	}
 }

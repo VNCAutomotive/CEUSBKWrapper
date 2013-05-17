@@ -22,12 +22,31 @@
 #include "MutexLocker.h"
 
 MutexLocker::MutexLocker(HANDLE& aMutex)
-: mMutex(aMutex)
+: mMutex(aMutex),
+  mLocked(true)
 {
 	WaitForSingleObject(mMutex, INFINITE);
 }
 
 MutexLocker::~MutexLocker()
 {
-	ReleaseMutex(mMutex);
+	unlock();
+}
+
+void MutexLocker::unlock()
+{
+	if (mLocked)
+	{
+		ReleaseMutex(mMutex);
+		mLocked = false;
+	}
+}
+
+void MutexLocker::relock()
+{
+	if (!mLocked)
+	{
+		WaitForSingleObject(mMutex, INFINITE);
+		mLocked = true;
+	}
 }

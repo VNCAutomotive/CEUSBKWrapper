@@ -80,7 +80,9 @@ UsbDevice::UsbDevice(
   mInterfaceClaimers(NULL),
   mInterfaceClaimersCount(0),
   mConfigDescriptors(NULL),
-  mNumConfigurations(0)
+  mNumConfigurations(0),
+  mAttachKernelDriverCount(0),
+  mAttachKernelDriverEvent(NULL)
 {
 
 }
@@ -91,6 +93,9 @@ UsbDevice::~UsbDevice()
 
 	if (mInterfaceClaimers)
 		delete [] mInterfaceClaimers;
+
+	if (mAttachKernelDriverEvent)
+		CloseHandle(mAttachKernelDriverEvent);
 
 	DestroyAllConfigDescriptors();
 
@@ -106,6 +111,14 @@ void UsbDevice::Close()
 		DEVLIFETIME_MSG((
 			TEXT("USBKWrapperDrv!UsbDevice::Close() mDevice: 0x%08x mBus: %d mAddress: %d\r\n"),
 			mDevice, mBus, mAddress));
+
+		// Ensure all kernel driver attach operations have completed before closing.
+		while (mAttachKernelDriverCount > 0) {
+			lock.unlock();
+			WaitForSingleObject(mAttachKernelDriverEvent, INFINITE);
+			lock.relock();
+		}
+
 		// Provide notification to userland that this USB device has disappeared
 		AdvertiseDevice(FALSE);
 
@@ -138,6 +151,12 @@ BOOL UsbDevice::Init(USB_HANDLE hDevice,
 
 	if (!mCloseMutex.Init()) {
 		ERROR_MSG((TEXT("USBKWrapperDrv!UsbDevice::Init() - failed to create mutex\r\n")));
+		return FALSE;
+	}
+
+	mAttachKernelDriverEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+	if (!mAttachKernelDriverEvent) {
+		ERROR_MSG((TEXT("USBKWrapperDrv!UsbDevice::Init() - failed to create event\r\n")));
 		return FALSE;
 	}
 
@@ -872,6 +891,57 @@ BOOL UsbDevice::IsKernelDriverActiveForInterface(DWORD dwInterface, PBOOL active
 	return TRUE;
 }
 
+void UsbDevice::SetInterfaceClaimable(UCHAR ifnum, BOOL claimable) 
+{
+	for (DWORD i = 0; i < mInterfaceClaimersCount; ++i) {
+		if (mInterfaceClaimers[i].InterfaceValue() == ifnum) {
+			mInterfaceClaimers[i].SetClaimable(claimable);
+		}
+	}
+}
+
+void UsbDevice::SetAllInterfacesClaimable(BOOL claimable) 
+{
+	for (DWORD i = 0; i < mInterfaceClaimersCount; ++i) {
+		mInterfaceClaimers[i].SetClaimable(claimable);
+	}
+}
+
+BOOL UsbDevice::DoAttachKernelDriver(WriteLocker& lock, LPCUSB_INTERFACE devIf)
+{
+	// Set interface(s) as unclaimable first, so nobody tries to use them
+	// whilst we're attaching the driver. We set them back to claimable
+	// if the operation fails.
+	if (devIf) {
+		SetInterfaceClaimable(devIf->Descriptor.bInterfaceNumber, FALSE);
+	} else {
+		SetAllInterfacesClaimable(FALSE);
+	}
+
+	// Release mutex whilst attaching kernel driver (operation may
+	// be long blocking). Close() will wait until attach operations
+	// have completed.
+	++mAttachKernelDriverCount;
+	lock.unlock();
+
+	BOOL result = mUsbFuncs->lpLoadGenericInterfaceDriver(mDevice, devIf);
+
+	lock.relock();
+	--mAttachKernelDriverCount;
+	SetEvent(mAttachKernelDriverEvent);
+	
+	if (!result) {
+		// Attach failed, set interface(s) as claimable again.
+		if (devIf) {
+			SetInterfaceClaimable(devIf->Descriptor.bInterfaceNumber, TRUE);
+		} else {
+			SetAllInterfacesClaimable(TRUE);
+		}
+	}
+
+	return result;
+}
+
 BOOL UsbDevice::AttachKernelDriverForInterface(DWORD dwInterface)
 {
 	WriteLocker lock(mCloseMutex);
@@ -898,17 +968,9 @@ BOOL UsbDevice::AttachKernelDriverForInterface(DWORD dwInterface)
 	if (active) {
 		SetLastError(ERROR_BUSY);
 		return FALSE;
-	} 
-
-	BOOL result = mUsbFuncs->lpLoadGenericInterfaceDriver(mDevice, devIf);
-	if (result) {
-		for (DWORD i = 0; i < mInterfaceClaimersCount; i++) {
-			if (mInterfaceClaimers[i].InterfaceValue() == ifnum) {
-				mInterfaceClaimers[i].SetUnclaimable();
-			}
-		}
 	}
-	return result;
+
+	return DoAttachKernelDriver(lock, devIf);
 }
 
 BOOL UsbDevice::DetachKernelDriverForInterface(DWORD dwInterface)
@@ -938,11 +1000,5 @@ BOOL UsbDevice::AttachKernelDriverForDevice()
 		return FALSE;
 	} 
 
-	BOOL result = mUsbFuncs->lpLoadGenericInterfaceDriver(mDevice, NULL);
-	if (result) {
-		for (DWORD i = 0; i < mInterfaceClaimersCount; i++) {
-			mInterfaceClaimers[i].SetUnclaimable();
-		}
-	}
-	return result;
+	return DoAttachKernelDriver(lock, NULL);
 }

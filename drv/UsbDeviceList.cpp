@@ -595,30 +595,58 @@ BOOL UsbDeviceList::AttachDevice(
 		// Try to release any interfaces that match our filters (if we have any)
 		BOOL failedToAttach = FALSE;
 		BOOL attachSuccesful = FALSE;
+
+		// Increment refcount on device, so nobody tries to delete it whilst
+		// we're attaching kernel drivers
+		ptr.get()->IncRef();
+
 		for (DWORD i = 0; i < device->lpActiveConfig->dwNumInterfaces && !failedToAttach; i++) {
 			if (filters.Get(i)) {
 				UCHAR bInterfaceNumber = device->lpActiveConfig->lpInterfaces[i].Descriptor.bInterfaceNumber;
 				IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Interface %u matches filter %s")
 					TEXT(", attaching kernel driver\r\n"), bInterfaceNumber, filters.Get(i)->name));
+
+				// Yield mMutex whilst attaching kernel driver (operation may be
+				// long blocking).
+				lock.unlock();
 				if (ptr.get()->AttachKernelDriverForInterface(bInterfaceNumber)) {
+					IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Successfully attached kernel driver for ")
+						TEXT("interface %u\r\n"), bInterfaceNumber));
 					attachSuccesful = TRUE;
-				} else if (!attachSuccesful) {
+				} else {
+					IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Unable to attach kernel driver for ")
+						TEXT("interface %u (error %u)\r\n"), bInterfaceNumber, GetLastError()));
+
 					// Only resort to finding a driver for the entire device, if we have
 					// not already attached drivers to other interfaces.
-					failedToAttach = TRUE;
+					if (!attachSuccesful) {
+						failedToAttach = TRUE;
+					}
 				}
+				lock.relock();
 			}
 		}
 		if (failedToAttach) {
 			// Try to find a driver for the entire device. We will release all of our interfaces,
 			// but still reserve the right to send arbitrary control transfers.
 			IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Attaching kernel driver for entire device\r\n")));
+		
+			// Yield mMutex whilst attaching kernel driver (operation may be
+			// long blocking).
+			lock.unlock();
 			if (!ptr.get()->AttachKernelDriverForDevice()) {
 				// There really is no other driver willing to control this device!
 				IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Unable to attach kernel driver for entire ")
 					TEXT("device (error %u), retaining control\r\n"), GetLastError()));
+			} else {
+				IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Successfully attached kernel driver for entire ")
+					TEXT("device\r\n")));
 			}
+			lock.relock();
 		}
+
+		// Decrement refcount on device.
+		ptr.get()->DecRef();
 	}
 
 	ptr.release();
