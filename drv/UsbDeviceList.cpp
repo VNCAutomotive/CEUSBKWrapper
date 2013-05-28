@@ -593,14 +593,13 @@ BOOL UsbDeviceList::AttachDevice(
 	// Release any interfaces matching filters
 	if (filterMatches) {
 		// Try to release any interfaces that match our filters (if we have any)
-		BOOL failedToAttach = FALSE;
 		BOOL attachSuccesful = FALSE;
 
 		// Increment refcount on device, so nobody tries to delete it whilst
 		// we're attaching kernel drivers
 		ptr.get()->IncRef();
 
-		for (DWORD i = 0; i < device->lpActiveConfig->dwNumInterfaces && !failedToAttach; i++) {
+		for (DWORD i = 0; i < device->lpActiveConfig->dwNumInterfaces; i++) {
 			if (filters.Get(i)) {
 				UCHAR bInterfaceNumber = device->lpActiveConfig->lpInterfaces[i].Descriptor.bInterfaceNumber;
 				IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Interface %u matches filter %s")
@@ -612,23 +611,21 @@ BOOL UsbDeviceList::AttachDevice(
 				if (ptr.get()->AttachKernelDriverForInterface(bInterfaceNumber)) {
 					IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Successfully attached kernel driver for ")
 						TEXT("interface %u\r\n"), bInterfaceNumber));
+
+					// At least one driver has attached successfully to an interface
 					attachSuccesful = TRUE;
 				} else {
 					IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Unable to attach kernel driver for ")
 						TEXT("interface %u (error %u)\r\n"), bInterfaceNumber, GetLastError()));
-
-					// Only resort to finding a driver for the entire device, if we have
-					// not already attached drivers to other interfaces.
-					if (!attachSuccesful) {
-						failedToAttach = TRUE;
-					}
 				}
 				lock.relock();
 			}
 		}
-		if (failedToAttach) {
-			// Try to find a driver for the entire device. We will release all of our interfaces,
-			// but still reserve the right to send arbitrary control transfers.
+
+		// If we failed to attach a driver to at least one interface, try to find a
+		// driver for the entire device.  We will release all of our interfaces, but
+		// still reserve the right to send arbitrary control transfers.
+		if (!attachSuccesful) {
 			IFACEFILTER_MSG((TEXT("USBKWrapperDrv: Attaching kernel driver for entire device\r\n")));
 		
 			// Yield mMutex whilst attaching kernel driver (operation may be
