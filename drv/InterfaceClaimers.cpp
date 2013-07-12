@@ -161,6 +161,15 @@ void InterfaceClaimers::ReleaseAll(LPVOID Context)
 	}
 }
 
+void InterfaceClaimers::ReleaseAll()
+{
+	// Release all claims regardless of context
+	for (DWORD i = 0; i < mContextsCount; ++i) {
+		mContexts[i].Count = 0;
+	}
+	RemoveEmptyContexts();
+}
+
 BOOL InterfaceClaimers::HasEndpoint(UCHAR Endpoint) const
 {
 	for (DWORD i = 0; i < mEndpointsCount; ++i) {

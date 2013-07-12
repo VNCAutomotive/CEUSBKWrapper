@@ -37,6 +37,7 @@ public:
 	BOOL Claim(LPVOID Context, BOOL& IsFirst);
 	BOOL Release(LPVOID Context);
 	void ReleaseAll(LPVOID Context);
+	void ReleaseAll();
 	BOOL HasEndpoint(UCHAR Endpoint) const;
 	USB_PIPE GetPipeForEndpoint(UCHAR Endpoint) const;
 	USB_PIPE GetPipeForIndex(DWORD dwIndex) const;

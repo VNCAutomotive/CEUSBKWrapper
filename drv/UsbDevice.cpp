@@ -124,9 +124,10 @@ void UsbDevice::Close()
 
 		mUsbFuncs->lpUnRegisterNotificationRoutine(
 			mDevice, UsbDeviceNotifyRoutine, this);
-		// Close any pipes in claimed interfaces
+		// Close any pipes in, and release all, claimed interfaces.
 		for (DWORD i = 0; i < mInterfaceClaimersCount; ++i) {
 			ClosePipes(mInterfaceClaimers[i]);
+			mInterfaceClaimers[i].ReleaseAll();
 		}
 		mRegistered = FALSE;
 		mUsbFuncs = NULL;
@@ -273,9 +274,11 @@ BOOL UsbDevice::ClaimInterface(DWORD dwInterfaceValue, LPVOID Context)
 BOOL UsbDevice::ReleaseInterface(DWORD dwInterfaceValue, LPVOID Context)
 {
 	WriteLocker lock(mCloseMutex);
-	// Don't immediately give up if the device is closed,
-	// as the release is probably just a well behaved client
-	// releasing interfaces after noticing the device disappeared.
+	if (Closed()) {
+		// Closed devices have already had their interfaces released
+		SetLastError(ERROR_INVALID_HANDLE);
+		return FALSE;
+	}
 
 	for (DWORD i = 0; i < mInterfaceClaimersCount; ++i) {
 		if (mInterfaceClaimers[i].InterfaceValue() == dwInterfaceValue) {

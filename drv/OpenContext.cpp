@@ -242,6 +242,12 @@ BOOL OpenContext::StartBulkTransfer(LPUKWD_BULK_TRANSFER_INFO lpTransferInfo)
 		return FALSE;
 	}
 
+	// Interface can't be used if device has closed
+	if (dev->Closed()) {
+		SetLastError(ERROR_INVALID_HANDLE);
+		return FALSE;
+	}
+
 	// Find the interface for this transfer
 	DWORD dwInterface;
 	if (!dev->FindInterface(lpTransferInfo->Endpoint, dwInterface)) {
@@ -401,6 +407,12 @@ BOOL OpenContext::SetAltSetting(LPUKWD_SET_ALTSETTING_INFO lpSetAltSettingInfo)
 		return FALSE;
 	}
 
+	// Interface can't be used if device has closed
+	if (dev->Closed()) {
+		SetLastError(ERROR_INVALID_HANDLE);
+		return FALSE;
+	}
+
 	if (!dev->InterfaceClaimed(lpSetAltSettingInfo->dwInterface, this)) {
 		WARN_MSG((TEXT("USBKWrapperDrv!OpenContext::SetAltSetting() - ")
 			TEXT("using interface %d on device 0x%08x without claiming\r\n"),
@@ -418,6 +430,12 @@ BOOL OpenContext::ClearHaltHost(LPUKWD_ENDPOINT_INFO lpEndpointInfo)
 	MutexLocker lock(mMutex);
 	DevicePtr dev (mDevice->GetDeviceList(), lpEndpointInfo->lpDevice);
 	if (!Validate(dev)) {
+		SetLastError(ERROR_INVALID_HANDLE);
+		return FALSE;
+	}
+
+	// Interface can't be used if device has closed
+	if (dev->Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
 	}
@@ -453,6 +471,12 @@ BOOL OpenContext::ClearHaltDevice(LPUKWD_ENDPOINT_INFO lpEndpointInfo)
 		return FALSE;
 	}
 
+	// Interface can't be used if device has closed
+	if (dev->Closed()) {
+		SetLastError(ERROR_INVALID_HANDLE);
+		return FALSE;
+	}
+
 	// Find the interface for this device
 	DWORD dwInterface;
 	if (!dev->FindInterface(lpEndpointInfo->Endpoint, dwInterface)) {
@@ -481,6 +505,12 @@ BOOL OpenContext::IsPipeHalted(LPUKWD_ENDPOINT_INFO lpEndpointInfo, LPBOOL halte
 	MutexLocker lock(mMutex);
 	DevicePtr dev (mDevice->GetDeviceList(), lpEndpointInfo->lpDevice);
 	if (!Validate(dev) || halted == NULL) {
+		SetLastError(ERROR_INVALID_HANDLE);
+		return FALSE;
+	}
+
+	// Interface can't be used if device has closed
+	if (dev->Closed()) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return FALSE;
 	}
