@@ -155,7 +155,7 @@ ceusbkwrapper_API HANDLE UkwOpenDriver()
 		WARN_MSG((TEXT("USBKWrapper!UkwOpenDriver() activated a device matching the default/builtin name\r\n")));
 	}
 
-	ret = CreateFile(di.szDeviceName,
+	ret = CreateFile(di.szLegacyName,
 		GENERIC_READ | GENERIC_WRITE,
 		FILE_SHARE_READ | FILE_SHARE_WRITE,
 		NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, INVALID_HANDLE_VALUE);
