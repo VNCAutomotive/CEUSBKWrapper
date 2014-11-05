@@ -214,6 +214,9 @@ void Transfer::DoTransferCompleted()
 	// Need to flush the IO buffer before completing the overlapped buffer
 	SetBytesTransferred(bytesTransferred);
 	mOverlappedBuffer.Complete(translatedError, bytesTransferred);
+#if _WIN32_WCE < 0x600
+	mUserBuffer.Flush();
+#endif
 	mOpenContext->GetTransferList()->PutTransfer(this);
 	// Must return immediately as 'this' might have been deleted when put.
 	return;

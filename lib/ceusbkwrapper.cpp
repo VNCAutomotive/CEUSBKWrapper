@@ -155,11 +155,17 @@ ceusbkwrapper_API HANDLE UkwOpenDriver()
 		WARN_MSG((TEXT("USBKWrapper!UkwOpenDriver() activated a device matching the default/builtin name\r\n")));
 	}
 
+#if _WIN32_WCE >= 0x600
 	ret = CreateFile(di.szDeviceName,
 		GENERIC_READ | GENERIC_WRITE,
 		FILE_SHARE_READ | FILE_SHARE_WRITE,
 		NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, INVALID_HANDLE_VALUE);
-
+#else
+	ret = CreateFile(di.szLegacyName,
+		GENERIC_READ | GENERIC_WRITE,
+		FILE_SHARE_READ | FILE_SHARE_WRITE,
+		NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, INVALID_HANDLE_VALUE);
+#endif
 	if (ret == INVALID_HANDLE_VALUE) {
 		ERROR_MSG((TEXT("USBKWrapper!UkwOpenDriver() failed to create device file: %d\r\n"), GetLastError()));
 	}
